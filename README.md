@@ -8,7 +8,7 @@ A Roslyn-based static analysis tool with three primary functions:
 
 **Doxygen XML export** — Exports the complete type dependency graph of a codebase to Doxygen-conformant XML files. Each type becomes a compound XML file with structured edges for inheritance, interface implementation, and usage relationships. Ready for downstream tooling that understands the Doxygen compound schema.
 
-**Neo4j direct import** — Connects directly to a running Neo4j database server (via Bolt) and imports the full dependency graph as typed nodes and relationships — no intermediate files. Designed for loading C# codebase graphs into Neo4j for further analysis, visualisation, or graph-query-based impact assessment.
+**Neo4j direct import** — Connects directly to a running Neo4j database server (via Bolt) and imports the full dependency graph using a schema that mirrors the Doxygen compound model (`(:Compound)` nodes keyed on Doxygen refids, with `:BASECOMPOUNDREF`, `:REFERENCES`, and `:INNERCLASS` relationships) — no intermediate files. Designed for loading C# codebase graphs into Neo4j for further analysis, visualisation, or graph-query-based impact assessment.
 
 ## How It Works
 
@@ -26,7 +26,7 @@ From there, each subcommand follows its own path:
 
 **`export --format neo4j` (Neo4j import):**
 
-3. **Graph import** — Each discovered type is written as a `(:Type {fqn, name, kind, namespace})` Neo4j node. Dependency edges become typed relationships: `:INHERITS_FROM`, `:IMPLEMENTS`, or `:DEPENDS_ON {reason}`. All writes use `MERGE`, making the import fully idempotent.
+3. **Graph import** — The graph is imported using a schema that mirrors the Doxygen compound model: each type and namespace becomes a `(:Compound {id, kind, name, fqn, language})` node, MERGE-keyed on the Doxygen refid. Structural edges (inheritance, interface implementation) become `:BASECOMPOUNDREF {prot, virt}` relationships; usage edges become `:REFERENCES {kind: "variable", reason}` relationships; namespace-to-type membership becomes `:INNERCLASS {prot: "public"}`. All writes use `MERGE`, making the import fully idempotent.
 4. **Output** — The tool reports the number of nodes and relationships written to the console. No files are produced.
 
 **`export --format doxygen` (Doxygen XML):**

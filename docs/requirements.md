@@ -26,15 +26,16 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 ### FR-7: Neo4j Direct Import
 
 - **FR-7.1**: The `export --format neo4j` command shall connect to a running Neo4j database server using the Bolt protocol and import the full dependency graph directly — no intermediate files are produced.
-- **FR-7.2**: Each in-scope type shall be imported as a Neo4j node with the label `Type` and the following properties: `fqn` (fully qualified name), `name` (short/unqualified name), `kind` (e.g. `Class`, `Interface`), `namespace` (containing namespace, empty string if none).
-- **FR-7.3**: The import shall use `MERGE` statements on the `fqn` property to be idempotent — re-running the import on the same database shall not produce duplicate nodes or relationships.
-- **FR-7.4**: Dependency edges shall be mapped to typed Neo4j relationships:
-  - `INHERITS_FROM` for inheritance edges.
-  - `IMPLEMENTS` for interface-implementation edges.
-  - `DEPENDS_ON {reason: "..."}` for all other dependency edges, with the `DependencyReason` string stored as a `reason` property on the relationship.
+- **FR-7.2**: Each in-scope type shall be imported as a Neo4j node with the label `Compound` and the following properties (mirroring the Doxygen `<compounddef>` attributes): `id` (Doxygen refid — unique and deterministic, serves as the MERGE key), `kind` (Doxygen kind string: `class`, `interface`, `struct`, `enum`), `name` (compound name using `::` as namespace separator, mirroring `<compoundname>`), `fqn` (original .NET fully qualified name), `language` (always `"C#"`).
+- **FR-7.3**: The import shall use `MERGE` statements on the `id` (Doxygen refid) property to be idempotent — re-running the import on the same database shall not produce duplicate nodes or relationships.
+- **FR-7.4**: Dependency edges shall be mapped to typed Neo4j relationships (mirroring the Doxygen compound schema):
+  - `BASECOMPOUNDREF {prot: "public", virt: "non-virtual"}` for inheritance edges (mirrors `<basecompoundref virt="non-virtual">`).
+  - `BASECOMPOUNDREF {prot: "public", virt: "virtual"}` for interface-implementation edges (mirrors `<basecompoundref virt="virtual">`).
+  - `REFERENCES {kind: "variable", reason: "..."}` for all other dependency edges, with the `DependencyReason` string stored as a `reason` property (mirrors `<memberdef kind="variable"><references>`).
 - **FR-7.5**: The Neo4j connection shall be configurable via CLI options: `--neo4j-uri` (default `bolt://localhost:7687`), `--neo4j-user` (default `neo4j`), `--neo4j-password` (required — may also be supplied via the `NEO4J_PASSWORD` environment variable), `--neo4j-database` (default `neo4j`).
 - **FR-7.6**: The tool shall not log or persist the Neo4j password. Error messages involving connection failures shall not include credential values.
 - **FR-7.7**: After import, the tool shall report the number of nodes written and the number of relationships written to the console.
+- **FR-7.8**: Each unique namespace prefix found within the in-scope type FQNs shall be imported as a `(:Compound {kind: "namespace"})` node, mirroring the Doxygen `<compounddef kind="namespace">` compound. A `INNERCLASS {prot: "public"}` relationship shall be written from each namespace compound to each type it directly contains, mirroring the Doxygen `<innerclass>` element.
 
 ### FR-6: Doxygen XML Export
 

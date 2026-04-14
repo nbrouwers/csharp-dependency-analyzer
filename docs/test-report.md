@@ -321,35 +321,35 @@ Tests for Doxygen XML export, `DoxygenRefIdHelper`, and `DoxygenEdgeKind` edge c
 
 ### 3.11 Neo4jExporterTests (30 tests)
 
-Tests helper logic for the Neo4j direct import — FQN decomposition, relationship type mapping, node parameter building, and edge operation collection — all without requiring a live Neo4j server. Traces to **FR-5.3** and **FR-7.1**–**FR-7.7**.
+Tests helper logic for the Neo4j direct import using the Doxygen-aligned graph schema — node parameter building (Compound nodes with Doxygen refids), namespace parameter building, `virt` attribute derivation, and edge operation collection — all without requiring a live Neo4j server. Traces to **FR-5.3** and **FR-7.1**–**FR-7.8**.
 
 | ID | Test Method | Description | Level |
 |----|------------|-------------|-------|
-| NJ-01 | `ExtractShortName_MultiSegment_ReturnsLastSegment` | Multi-segment FQN → short name is last dot-separated token. | Unit |
-| NJ-02 | `ExtractShortName_SingleSegment_ReturnsSelf` | FQN with no dots → returned as-is. | Unit |
-| NJ-03 | `ExtractShortName_TwoSegments_ReturnsSecond` | Two-segment FQN → second segment. | Unit |
-| NJ-04 | `ExtractShortName_GenericTypeName_TreatsAngleBracketsAsLiteral` | `Acme.Core.IRepository<T>` → short name `IRepository<T>`. | Unit |
-| NJ-05 | `ExtractNamespace_MultiSegment_ReturnsAllButLast` | Multi-segment FQN → all segments before last dot. | Unit |
-| NJ-06 | `ExtractNamespace_SingleSegment_ReturnsEmpty` | No namespace → empty string. | Unit |
-| NJ-07 | `ExtractNamespace_TwoSegments_ReturnsFirst` | Two-segment FQN → first segment. | Unit |
-| NJ-08 | `ExtractNamespace_DeepNesting_ReturnsCorrectNamespace` | Five-level FQN → four-level namespace. | Unit |
-| NJ-09 | `GetRelationshipType_Inheritance_ReturnsInheritsFrom` | `Inheritance` → `INHERITS_FROM`. | Unit |
-| NJ-10 | `GetRelationshipType_InterfaceImplementation_ReturnsImplements` | `InterfaceImplementation` → `IMPLEMENTS`. | Unit |
-| NJ-11 | `GetRelationshipType_Usage_ReturnsDependsOn` | `Usage` → `DEPENDS_ON`. | Unit |
-| NJ-12 | `BuildNodeParameters_ContainsFqn` | Parameter map includes `fqn` key with full FQN. | Unit |
-| NJ-13 | `BuildNodeParameters_ContainsShortName` | Parameter map includes `name` key with short name. | Unit |
-| NJ-14 | `BuildNodeParameters_ContainsNamespace` | Parameter map includes `namespace` key with namespace. | Unit |
-| NJ-15 | `BuildNodeParameters_KindMatchesElementKindString(×6)` | `kind` property matches `ElementKind.ToString()` for all six kinds. | Unit |
-| NJ-16 | `BuildNodeParameters_NoNamespace_NamespaceIsEmpty` | Top-level type (no namespace) → `namespace` is empty string. | Unit |
-| NJ-17 | `CollectEdgeOperations_EmptyGraph_ReturnsEmpty` | No edges for empty graph. | Unit |
-| NJ-18 | `CollectEdgeOperations_InheritanceEdge_RelTypeIsInheritsFrom` | Inheritance edge → `INHERITS_FROM` relationship. | Unit |
-| NJ-19 | `CollectEdgeOperations_InterfaceEdge_RelTypeIsImplements` | Interface-implementation edge → `IMPLEMENTS` relationship. | Unit |
-| NJ-20 | `CollectEdgeOperations_UsageEdge_RelTypeIsDependsOn` | Usage edge → `DEPENDS_ON` with reason. | Unit |
-| NJ-21 | `CollectEdgeOperations_OutOfScopeTarget_EdgeSkipped` | Edge targeting type not in `ElementKinds` is not emitted. | Unit |
-| NJ-22 | `CollectEdgeOperations_MultipleEdges_AllReturnedExceptOutOfScope` | Integration: all four in-scope edges collected from sample graph. | Unit |
-| NJ-23 | `CollectEdgeOperations_UsageEdge_ParametersContainReason` | `reason` property on DEPENDS_ON edge operation matches `DependencyReason`. | Unit |
-| NJ-24 | `CollectEdgeOperations_EdgeContainsSourceAndTargetFqn` | `sourceFqn` and `targetFqn` in parameters and record fields. | Unit |
-| NJ-25 | `CollectEdgeOperations_InheritanceEdge_QueryDoesNotContainReasonPlaceholder` | INHERITS_FROM Cypher query has no `$reason` placeholder. | Unit |
+| NJ-01 | `BuildNodeParameters_IdIsDoxygenRefId` | `id` property equals the Doxygen refid derived from the FQN and `ElementKind`. | Unit |
+| NJ-02 | `BuildNodeParameters_KindIsDoxygenKindString` | `kind` property is the lowercase Doxygen kind string (`"class"`), not the enum name. | Unit |
+| NJ-03 | `BuildNodeParameters_NameUsesDoubleColonSeparators` | `name` uses `::` separators — mirrors `<compoundname>Acme::Core::OrderService</compoundname>`. | Unit |
+| NJ-04 | `BuildNodeParameters_ContainsFqn` | Parameter map includes `fqn` key with the original .NET fully qualified name. | Unit |
+| NJ-05 | `BuildNodeParameters_ContainsLanguageCSharp` | Parameter map includes `language` key set to `"C#"`. | Unit |
+| NJ-06 | `BuildNodeParameters_AllKindsMappedToDoxygenKindString(×6)` | Theory: `Class`/`Record`/`Delegate`→`"class"`, `Interface`→`"interface"`, `Struct`→`"struct"`, `Enum`→`"enum"`. | Unit |
+| NJ-07 | `BuildNamespaceParameters_IdIsNamespaceRefId` | Namespace parameter `id` equals `NamespaceRefId(ns)`. | Unit |
+| NJ-08 | `BuildNamespaceParameters_KindIsNamespace` | Namespace parameter `kind` is `"namespace"` — mirrors `<compounddef kind="namespace">`. | Unit |
+| NJ-09 | `BuildNamespaceParameters_NameUsesDoubleColonSeparators` | Namespace `name` uses `::` separators. | Unit |
+| NJ-10 | `GetVirt_Inheritance_ReturnsNonVirtual` | `Inheritance` → `"non-virtual"` — mirrors `<basecompoundref virt="non-virtual">`. | Unit |
+| NJ-11 | `GetVirt_InterfaceImplementation_ReturnsVirtual` | `InterfaceImplementation` → `"virtual"` — mirrors `<basecompoundref virt="virtual">`. | Unit |
+| NJ-12 | `GetVirt_Usage_ReturnsNonVirtual` | `Usage` edge kind → `"non-virtual"` fallback. | Unit |
+| NJ-13 | `CollectEdgeOperations_EmptyGraph_ReturnsEmpty` | No edge operations emitted for empty graph. | Unit |
+| NJ-14 | `CollectEdgeOperations_InheritanceEdge_RelTypeIsBaseCompoundRef` | Inheritance edge → `BASECOMPOUNDREF` relationship type. | Unit |
+| NJ-15 | `CollectEdgeOperations_InheritanceEdge_VirtParameterIsNonVirtual` | Inheritance edge → `virt="non-virtual"`, `prot="public"` parameters. | Unit |
+| NJ-16 | `CollectEdgeOperations_InterfaceEdge_RelTypeIsBaseCompoundRef` | Interface-implementation edge → `BASECOMPOUNDREF` relationship type. | Unit |
+| NJ-17 | `CollectEdgeOperations_InterfaceEdge_VirtParameterIsVirtual` | Interface-implementation edge → `virt="virtual"` parameter. | Unit |
+| NJ-18 | `CollectEdgeOperations_UsageEdge_RelTypeIsReferences` | Usage edge → `REFERENCES` relationship type. | Unit |
+| NJ-19 | `CollectEdgeOperations_UsageEdge_ReasonInParameters` | `reason` property on `REFERENCES` edge matches `DependencyReason`. | Unit |
+| NJ-20 | `CollectEdgeOperations_OutOfScopeTarget_EdgeSkipped` | Edge targeting type not in `ElementKinds` is not emitted. | Unit |
+| NJ-21 | `CollectEdgeOperations_EdgeIdsAreDerivedFromRefIds` | `SourceId`/`TargetId` on `EdgeOperation` are Doxygen refids, not .NET FQNs. | Unit |
+| NJ-22 | `CollectInnerClassOperations_EmptyGraph_ReturnsEmpty` | No inner-class operations for empty graph or empty namespace list. | Unit |
+| NJ-23 | `CollectInnerClassOperations_TypeInNamespace_ProducesInnerClassEdge` | Type directly in a namespace → one `INNERCLASS` edge operation emitted. | Unit |
+| NJ-24 | `CollectInnerClassOperations_InnerClassEdge_IdsAreNamespaceRefIdAndTypeRefId` | `SourceId` is the namespace refid; `TargetId` is the type refid; both reflected in `Parameters`. | Unit |
+| NJ-25 | `CollectInnerClassOperations_TopLevelType_NotLinkedToAnyNamespace` | Type with no namespace prefix is not linked to any namespace compound. | Unit |
 
 ### 3.12 PortableExeTests (3 tests)
 
