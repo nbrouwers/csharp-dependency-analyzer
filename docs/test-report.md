@@ -4,8 +4,8 @@
 > **Last updated:** 2026-04-14  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 208  
-> **Pass rate:** 97.6 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
+> **Total test cases:** 238  
+> **Pass rate:** 98.7 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
 
 ---
 
@@ -51,10 +51,11 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 8 | `Round3AuditProbeTests.cs` | 33 | Unit | FR-3.2 |
 | 9 | `Round4FinalSweepTests.cs` | 19 | Integration | FR-3.2 |
 | 10 | `DoxygenXmlExporterTests.cs` | 29 | Unit/Integration | FR-5.3, FR-6.1–FR-6.7 |
-| 11 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
-| 12 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
-| 13 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
-| | **Total** | **208** | | |
+| 11 | `Neo4jExporterTests.cs` | 30 | Unit | FR-5.3, FR-7.1–FR-7.7 |
+| 12 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
+| 13 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
+| 14 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
+| | **Total** | **238** | | |
 
 ---
 
@@ -318,7 +319,39 @@ Tests for Doxygen XML export, `DoxygenRefIdHelper`, and `DoxygenEdgeKind` edge c
 | DX-25 | `ExtractNamespaces_ReturnsAllPrefixes` | All dot-delimited prefixes returned for multi-level FQN. | Unit |
 | DX-26 | `NamespaceRefId_EncodesCorrectly` | Namespace refid uses `namespace` prefix + encoded name. | Unit |
 
-### 3.11 PortableExeTests (3 tests)
+### 3.11 Neo4jExporterTests (30 tests)
+
+Tests helper logic for the Neo4j direct import — FQN decomposition, relationship type mapping, node parameter building, and edge operation collection — all without requiring a live Neo4j server. Traces to **FR-5.3** and **FR-7.1**–**FR-7.7**.
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| NJ-01 | `ExtractShortName_MultiSegment_ReturnsLastSegment` | Multi-segment FQN → short name is last dot-separated token. | Unit |
+| NJ-02 | `ExtractShortName_SingleSegment_ReturnsSelf` | FQN with no dots → returned as-is. | Unit |
+| NJ-03 | `ExtractShortName_TwoSegments_ReturnsSecond` | Two-segment FQN → second segment. | Unit |
+| NJ-04 | `ExtractShortName_GenericTypeName_TreatsAngleBracketsAsLiteral` | `Acme.Core.IRepository<T>` → short name `IRepository<T>`. | Unit |
+| NJ-05 | `ExtractNamespace_MultiSegment_ReturnsAllButLast` | Multi-segment FQN → all segments before last dot. | Unit |
+| NJ-06 | `ExtractNamespace_SingleSegment_ReturnsEmpty` | No namespace → empty string. | Unit |
+| NJ-07 | `ExtractNamespace_TwoSegments_ReturnsFirst` | Two-segment FQN → first segment. | Unit |
+| NJ-08 | `ExtractNamespace_DeepNesting_ReturnsCorrectNamespace` | Five-level FQN → four-level namespace. | Unit |
+| NJ-09 | `GetRelationshipType_Inheritance_ReturnsInheritsFrom` | `Inheritance` → `INHERITS_FROM`. | Unit |
+| NJ-10 | `GetRelationshipType_InterfaceImplementation_ReturnsImplements` | `InterfaceImplementation` → `IMPLEMENTS`. | Unit |
+| NJ-11 | `GetRelationshipType_Usage_ReturnsDependsOn` | `Usage` → `DEPENDS_ON`. | Unit |
+| NJ-12 | `BuildNodeParameters_ContainsFqn` | Parameter map includes `fqn` key with full FQN. | Unit |
+| NJ-13 | `BuildNodeParameters_ContainsShortName` | Parameter map includes `name` key with short name. | Unit |
+| NJ-14 | `BuildNodeParameters_ContainsNamespace` | Parameter map includes `namespace` key with namespace. | Unit |
+| NJ-15 | `BuildNodeParameters_KindMatchesElementKindString(×6)` | `kind` property matches `ElementKind.ToString()` for all six kinds. | Unit |
+| NJ-16 | `BuildNodeParameters_NoNamespace_NamespaceIsEmpty` | Top-level type (no namespace) → `namespace` is empty string. | Unit |
+| NJ-17 | `CollectEdgeOperations_EmptyGraph_ReturnsEmpty` | No edges for empty graph. | Unit |
+| NJ-18 | `CollectEdgeOperations_InheritanceEdge_RelTypeIsInheritsFrom` | Inheritance edge → `INHERITS_FROM` relationship. | Unit |
+| NJ-19 | `CollectEdgeOperations_InterfaceEdge_RelTypeIsImplements` | Interface-implementation edge → `IMPLEMENTS` relationship. | Unit |
+| NJ-20 | `CollectEdgeOperations_UsageEdge_RelTypeIsDependsOn` | Usage edge → `DEPENDS_ON` with reason. | Unit |
+| NJ-21 | `CollectEdgeOperations_OutOfScopeTarget_EdgeSkipped` | Edge targeting type not in `ElementKinds` is not emitted. | Unit |
+| NJ-22 | `CollectEdgeOperations_MultipleEdges_AllReturnedExceptOutOfScope` | Integration: all four in-scope edges collected from sample graph. | Unit |
+| NJ-23 | `CollectEdgeOperations_UsageEdge_ParametersContainReason` | `reason` property on DEPENDS_ON edge operation matches `DependencyReason`. | Unit |
+| NJ-24 | `CollectEdgeOperations_EdgeContainsSourceAndTargetFqn` | `sourceFqn` and `targetFqn` in parameters and record fields. | Unit |
+| NJ-25 | `CollectEdgeOperations_InheritanceEdge_QueryDoesNotContainReasonPlaceholder` | INHERITS_FROM Cypher query has no `$reason` placeholder. | Unit |
+
+### 3.12 PortableExeTests (3 tests)
 
 Tests the self-contained single-file executable publish and execution. Traces to **NFR-4.1**–**NFR-4.3**.
 
@@ -328,7 +361,7 @@ Tests the self-contained single-file executable publish and execution. Traces to
 | PE-02 | `PublishedExe_ShowsHelp` | Portable exe `--help` returns correct CLI usage. | System |
 | PE-03 | `PublishedExe_AnalyzesSampleCodebase` | Portable exe analyzes sample and finds 11 fan-in elements. | System |
 
-### 3.11 CiWorkflowTests (7 tests)
+### 3.13 CiWorkflowTests (7 tests)
 
 Validates the GitHub Actions CI workflow configuration. Traces to **NFR-5.1**–**NFR-5.3**.
 
@@ -342,7 +375,7 @@ Validates the GitHub Actions CI workflow configuration. Traces to **NFR-5.1**–
 | CI-06 | `Workflow_TriggersOnPush` | Workflow triggers on `push` events. | Infrastructure |
 | CI-07 | `Workflow_TriggersOnPullRequest` | Workflow triggers on `pull_request` events. | Infrastructure |
 
-### 3.12 VersionTests (4 tests)
+### 3.14 VersionTests (4 tests)
 
 Validates semantic versioning configuration and assembly embedding. Traces to **NFR-6.1**–**NFR-6.4**.
 
@@ -353,7 +386,7 @@ Validates semantic versioning configuration and assembly embedding. Traces to **
 | VR-03 | `Assembly_HasInformationalVersion` | Compiled assembly has `AssemblyInformationalVersionAttribute`. | Infrastructure |
 | VR-04 | `Assembly_VersionMatchesCsproj` | Assembly version matches the `.csproj` `<Version>` value. | Infrastructure |
 
-### 3.13 MarkdownReportGeneratorTests — Version Line (1 test)
+### 3.15 MarkdownReportGeneratorTests — Version Line (1 test)
 
 | ID | Test Method | Description | Level |
 |----|------------|-------------|-------|
@@ -365,8 +398,9 @@ Validates semantic versioning configuration and assembly embedding. Traces to **
 
 | Requirement | Test IDs | Coverage |
 |-------------|----------|----------|
-| **FR-5.3**: `export` subcommand | DX-01–26 | Full |
+| **FR-5.3**: `export` subcommand | DX-01–26, NJ-01–25 | Full |
 | **FR-6.1–6.7**: Doxygen XML export | DX-01–26 | Full |
+| **FR-7.1–7.7**: Neo4j direct import | NJ-01–25 | Full |
 | **FR-1**: Target class specification | WB-03, WB-04, WB-05, E2E-01–04 | Full |
 | **FR-2**: Source scope definition | WB-01, WB-02, GB-15 | Full |
 | **FR-3.1**: Roslyn semantic model | WB-01, GB-01–15 | Full |
@@ -431,8 +465,8 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 208, failed: 3 (PortableExeTests — dotnet not in PATH), succeeded: 205, skipped: 0
-Duration: ~26s
+Test summary: total: 238, failed: 3 (PortableExeTests — dotnet not in PATH), succeeded: 235, skipped: 0
+Duration: ~30s
 ```
 
 ---
@@ -451,4 +485,5 @@ Tests were developed across four iterative cross-check rounds against the C# lan
 | Max transitive depth | 6 | — | — | 166 |
 | Dependency graph | 8 | — | — | 174 |
 | Semantic versioning | 5 | — | — | 179 || Doxygen XML export + subcommand CLI | 29 | — | — | 208 |
+| Neo4j direct import | 30 | — | — | 238 |
 Round 4 finding zero gaps confirmed convergence: all mainstream C# constructs are covered.

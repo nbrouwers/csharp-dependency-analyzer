@@ -20,8 +20,21 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 
 - **FR-5.1**: The tool shall expose its functionality through named subcommands. The current subcommands are `analyze` and `export`.
 - **FR-5.2**: The `analyze` subcommand shall compute the dependency analysis for a specified target class and produce a structured report. It shall support a `--mode` option (`fan-in` by default) to select the analysis direction; unknown mode values shall produce a clear error.
-- **FR-5.3**: The `export` subcommand shall extract the full dependency graph of the source scope and write it to an external format. It shall not require a target class. It shall support a `--format` option; currently only `doxygen` is supported.
+- **FR-5.3**: The `export` subcommand shall extract the full dependency graph of the source scope and write it to an external format. It shall not require a target class. It shall support a `--format` option; supported values are `doxygen` and `neo4j`.
 - **FR-5.4**: Both subcommands shall share the same `--files` file-list mechanism (FR-2.1).
+
+### FR-7: Neo4j Direct Import
+
+- **FR-7.1**: The `export --format neo4j` command shall connect to a running Neo4j database server using the Bolt protocol and import the full dependency graph directly — no intermediate files are produced.
+- **FR-7.2**: Each in-scope type shall be imported as a Neo4j node with the label `Type` and the following properties: `fqn` (fully qualified name), `name` (short/unqualified name), `kind` (e.g. `Class`, `Interface`), `namespace` (containing namespace, empty string if none).
+- **FR-7.3**: The import shall use `MERGE` statements on the `fqn` property to be idempotent — re-running the import on the same database shall not produce duplicate nodes or relationships.
+- **FR-7.4**: Dependency edges shall be mapped to typed Neo4j relationships:
+  - `INHERITS_FROM` for inheritance edges.
+  - `IMPLEMENTS` for interface-implementation edges.
+  - `DEPENDS_ON {reason: "..."}` for all other dependency edges, with the `DependencyReason` string stored as a `reason` property on the relationship.
+- **FR-7.5**: The Neo4j connection shall be configurable via CLI options: `--neo4j-uri` (default `bolt://localhost:7687`), `--neo4j-user` (default `neo4j`), `--neo4j-password` (required — may also be supplied via the `NEO4J_PASSWORD` environment variable), `--neo4j-database` (default `neo4j`).
+- **FR-7.6**: The tool shall not log or persist the Neo4j password. Error messages involving connection failures shall not include credential values.
+- **FR-7.7**: After import, the tool shall report the number of nodes written and the number of relationships written to the console.
 
 ### FR-6: Doxygen XML Export
 
@@ -129,11 +142,15 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 
 ### 5.2 Input — `export` subcommand
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `--files` | Yes | Path to a text file containing one source file path per line. |
-| `--format` | Yes | Export format. Currently only `doxygen` is supported. |
-| `--output-dir` | Yes | Directory to write the exported files into. Created if absent. |
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `--files` | Yes | — | Path to a text file containing one source file path per line. |
+| `--format` | Yes | — | Export format. Supported values: `doxygen`, `neo4j`. |
+| `--output-dir` | When `--format doxygen` | — | Directory to write the exported XML files into. Created if absent. |
+| `--neo4j-uri` | No | `bolt://localhost:7687` | Bolt URI of the Neo4j server. Used when `--format neo4j`. |
+| `--neo4j-user` | No | `neo4j` | Neo4j username. Used when `--format neo4j`. |
+| `--neo4j-password` | When `--format neo4j` | `NEO4J_PASSWORD` env var | Neo4j password. Not logged. |
+| `--neo4j-database` | No | `neo4j` | Target Neo4j database name. Used when `--format neo4j`. |
 
 ### 5.3 Output — `analyze` subcommand
 
@@ -171,6 +188,24 @@ graph LR
     node2["DependorB"] --> node1
     classDef target fill:#f96,stroke:#333,stroke-width:2px
 ` ` `
+```
+
+### 5.5 Output — `export --format neo4j` subcommand
+
+No files are produced. The dependency graph is imported directly into the Neo4j database. Console output reports:
+
+```
+C# Dependency Analyzer v2.x.x
+Mode:   export / neo4j
+
+Source files listed: N
+
+[1/2] Building Roslyn compilation...
+[2/2] Building dependency graph...
+
+Discovered M type(s), P dependency edge(s).
+[Neo4j] Connecting to bolt://...
+[Neo4j] Wrote M node(s) and Q relationship(s).
 ```
 
 ### 5.4 Output — `export --format doxygen` subcommand

@@ -46,28 +46,54 @@ analyzeCommand.SetHandler(RunAnalyze, targetOption, filesOption, outputOption, m
 // ---------------------------------------------------------------------------
 
 var exportCommand = new Command("export",
-    "Export the full dependency graph to an external format (e.g. Doxygen XML for Neo4j ingestion)");
+    "Export the full dependency graph to an external format (e.g. Doxygen XML or direct Neo4j import)");
 
 var formatOption = new Option<string>(
     "--format",
-    "Export format. Supported values: doxygen")
+    "Export format. Supported values: doxygen, neo4j")
 { IsRequired = true };
 
-var outputDirOption = new Option<string>(
+// Required for --format doxygen; validated at runtime for other formats
+var outputDirOption = new Option<string?>(
     "--output-dir",
-    "Directory to write the exported files into (created if absent)")
-{ IsRequired = true };
+    "Directory to write the exported files into (created if absent). Required for --format doxygen.");
 
 var exportFilesOption = new Option<string>(
     "--files",
     "Path to a text file containing one source file path per line")
 { IsRequired = true };
 
+// Neo4j connection options — used when --format neo4j
+var neo4jUriOption = new Option<string>(
+    "--neo4j-uri",
+    () => "bolt://localhost:7687",
+    "Bolt URI of the Neo4j server");
+
+var neo4jUserOption = new Option<string>(
+    "--neo4j-user",
+    () => "neo4j",
+    "Neo4j username");
+
+var neo4jPasswordOption = new Option<string?>(
+    "--neo4j-password",
+    "Neo4j password. If omitted, the NEO4J_PASSWORD environment variable is read.");
+
+var neo4jDatabaseOption = new Option<string>(
+    "--neo4j-database",
+    () => "neo4j",
+    "Target Neo4j database name");
+
 exportCommand.AddOption(exportFilesOption);
 exportCommand.AddOption(formatOption);
 exportCommand.AddOption(outputDirOption);
+exportCommand.AddOption(neo4jUriOption);
+exportCommand.AddOption(neo4jUserOption);
+exportCommand.AddOption(neo4jPasswordOption);
+exportCommand.AddOption(neo4jDatabaseOption);
 
-exportCommand.SetHandler(RunExport, exportFilesOption, formatOption, outputDirOption);
+exportCommand.SetHandler(RunExport,
+    exportFilesOption, formatOption, outputDirOption,
+    neo4jUriOption, neo4jUserOption, neo4jPasswordOption, neo4jDatabaseOption);
 
 // ---------------------------------------------------------------------------
 // Root command
@@ -149,13 +175,20 @@ static void RunAnalyze(string targetFqn, string filesPath, string outputPath, st
     }
 }
 
-static void RunExport(string filesPath, string format, string outputDir)
+static void RunExport(
+    string filesPath,
+    string format,
+    string? outputDir,
+    string neo4jUri,
+    string neo4jUser,
+    string? neo4jPassword,
+    string neo4jDatabase)
 {
     try
     {
-        if (format != "doxygen")
+        if (format != "doxygen" && format != "neo4j")
         {
-            Console.Error.WriteLine($"ERROR: Unknown export format '{format}'. Supported: doxygen");
+            Console.Error.WriteLine($"ERROR: Unknown export format '{format}'. Supported: doxygen, neo4j");
             Environment.ExitCode = 1;
             return;
         }
@@ -180,11 +213,42 @@ static void RunExport(string filesPath, string format, string outputDir)
         var graphBuilder = new DependencyGraphBuilder();
         var graph = graphBuilder.Build(compilation);
 
-        Console.WriteLine();
-        Console.WriteLine($"[Doxygen] Writing XML to: {Path.GetFullPath(outputDir)}");
-        var exporter = new DoxygenXmlExporter();
-        var fileCount = exporter.Export(graph, outputDir);
-        Console.WriteLine($"[Doxygen] Wrote {fileCount} XML file(s).");
+        int typeCount = graph.ElementKinds.Count;
+        int edgeCount = graph.Edges.Values.Sum(e => e.Count);
+        Console.WriteLine($"\nDiscovered {typeCount} type(s), {edgeCount} dependency edge(s).");
+
+        if (format == "doxygen")
+        {
+            if (outputDir is null)
+            {
+                Console.Error.WriteLine("ERROR: --output-dir is required when --format is doxygen.");
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            Console.WriteLine($"[Doxygen] Writing XML to: {Path.GetFullPath(outputDir)}");
+            var exporter = new DoxygenXmlExporter();
+            var fileCount = exporter.Export(graph, outputDir);
+            Console.WriteLine($"[Doxygen] Wrote {fileCount} XML file(s).");
+        }
+        else // neo4j
+        {
+            var password = neo4jPassword ?? Environment.GetEnvironmentVariable("NEO4J_PASSWORD");
+            if (string.IsNullOrEmpty(password))
+            {
+                Console.Error.WriteLine(
+                    "ERROR: --neo4j-password is required when --format is neo4j. " +
+                    "Alternatively, set the NEO4J_PASSWORD environment variable.");
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            Console.WriteLine($"[Neo4j] Connecting to {neo4jUri} (database: {neo4jDatabase})...");
+            var exporter = new Neo4jExporter();
+            var (nodesWritten, relsWritten) = exporter.ExportAsync(graph, neo4jUri, neo4jUser, password, neo4jDatabase)
+                .GetAwaiter().GetResult();
+            Console.WriteLine($"[Neo4j] Wrote {nodesWritten} node(s) and {relsWritten} relationship(s).");
+        }
     }
     catch (InvalidOperationException ex)
     {

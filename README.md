@@ -2,11 +2,13 @@
 
 [![CI](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml)
 
-A Roslyn-based static analysis tool with two primary functions:
+A Roslyn-based static analysis tool with three primary functions:
 
 **Fan-in analysis** — Given a target class and a set of source files, identifies every type (class, interface, struct, enum, record, delegate) that directly or transitively depends on the target. Produces a Markdown report with justifications and metrics. Useful when planning to move a class to a separate project or assembly: the fan-in set tells you exactly which types must move along with it to avoid breaking compilation.
 
-**Doxygen XML export** — Exports the complete type dependency graph of a codebase to Doxygen-conformant XML files. Each type becomes a compound XML file with structured edges for inheritance, interface implementation, and usage relationships. The output is ready for downstream tooling such as ingestion into a Neo4j graph database.
+**Doxygen XML export** — Exports the complete type dependency graph of a codebase to Doxygen-conformant XML files. Each type becomes a compound XML file with structured edges for inheritance, interface implementation, and usage relationships. Ready for downstream tooling that understands the Doxygen compound schema.
+
+**Neo4j direct import** — Connects directly to a running Neo4j database server (via Bolt) and imports the full dependency graph as typed nodes and relationships — no intermediate files. Designed for loading C# codebase graphs into Neo4j for further analysis, visualisation, or graph-query-based impact assessment.
 
 ## How It Works
 
@@ -22,7 +24,12 @@ From there, each subcommand follows its own path:
 3. **Transitive closure** — A BFS on the reversed adjacency list computes the full set of types that depend on the target, directly or transitively.
 4. **Report generation** — Results are written to a Markdown file with a fan-in table, per-kind metrics, and a Mermaid dependency diagram.
 
-**`export` (Doxygen XML):**
+**`export --format neo4j` (Neo4j import):**
+
+3. **Graph import** — Each discovered type is written as a `(:Type {fqn, name, kind, namespace})` Neo4j node. Dependency edges become typed relationships: `:INHERITS_FROM`, `:IMPLEMENTS`, or `:DEPENDS_ON {reason}`. All writes use `MERGE`, making the import fully idempotent.
+4. **Output** — The tool reports the number of nodes and relationships written to the console. No files are produced.
+
+**`export --format doxygen` (Doxygen XML):**
 
 3. **Graph serialisation** — The full dependency graph is serialised to Doxygen-conformant XML: one compound file per type, one compound file per namespace, and an `index.xml` catalogue. Inheritance and interface-implementation edges become `<basecompoundref>` elements; usage edges become `<memberdef>/<references>` elements.
 4. **Output** — Files are written to the specified output directory, ready for ingestion into downstream tooling such as Neo4j.
@@ -113,13 +120,33 @@ Or, using the published executable:
   --output report.md
 ```
 
-#### `export` — export full dependency graph to Doxygen XML (for Neo4j ingestion)
+#### `export` — export full dependency graph
+
+**Doxygen XML** (file-based, for tooling that reads Doxygen output):
 
 ```bash
 ./DependencyAnalyzer export \
   --files      filelist.txt \
   --format     doxygen \
   --output-dir ./doxygen-xml/
+```
+
+**Neo4j direct import** (connects to a running Neo4j instance; no files produced):
+
+```bash
+./DependencyAnalyzer export \
+  --files          filelist.txt \
+  --format         neo4j \
+  --neo4j-uri      bolt://localhost:7687 \
+  --neo4j-user     neo4j \
+  --neo4j-password secret
+```
+
+Or supply the password via environment variable to avoid it appearing in shell history:
+
+```bash
+export NEO4J_PASSWORD=secret
+./DependencyAnalyzer export --files filelist.txt --format neo4j
 ```
 
 ### CLI Reference
@@ -135,11 +162,15 @@ Or, using the published executable:
 
 #### `export` options
 
-| Option | Required | Description |
-|--------|----------|-------------|
-| `--files` | Yes | Path to a text file containing one source file path per line. |
-| `--format` | Yes | Export format. Currently only `doxygen` is supported. |
-| `--output-dir` | Yes | Directory to write the exported XML files into (created if absent). |
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--files` | Yes | — | Path to a text file containing one source file path per line. |
+| `--format` | Yes | — | Export format: `doxygen` or `neo4j`. |
+| `--output-dir` | When `doxygen` | — | Directory to write Doxygen XML files into (created if absent). |
+| `--neo4j-uri` | No | `bolt://localhost:7687` | Bolt URI of the Neo4j server. |
+| `--neo4j-user` | No | `neo4j` | Neo4j username. |
+| `--neo4j-password` | When `neo4j` | `NEO4J_PASSWORD` env var | Neo4j password. Not logged or persisted. |
+| `--neo4j-database` | No | `neo4j` | Target Neo4j database name. |
 
 ### 3. Read the report
 
@@ -336,7 +367,20 @@ dotnet run --project src/DependencyAnalyzer -- export \
   --output-dir samples/SampleCodebase/doxygen-xml
 ```
 
-This discovers 17 types and 24 dependency edges, writing 24 XML files to `samples/SampleCodebase/doxygen-xml/`. The committed output is already present in that directory and can be used as a reference or loaded directly into Neo4j.
+This discovers 17 types and 24 dependency edges, writing 24 XML files to `samples/SampleCodebase/doxygen-xml/`. The committed output is already present in that directory and can be used as a reference.
+
+### Neo4j direct import
+
+With a local Neo4j instance running (default Bolt URI `bolt://localhost:7687`):
+
+```bash
+dotnet run --project src/DependencyAnalyzer -- export \
+  --files          samples/SampleCodebase/filelist.txt \
+  --format         neo4j \
+  --neo4j-password secret
+```
+
+This connects to Neo4j, discovers 17 types and 24 dependency edges, then writes 17 `(:Type)` nodes and 24 relationships. The password can also be set via `NEO4J_PASSWORD` to avoid it appearing in shell history.
 
 ## Versioning
 
@@ -359,6 +403,7 @@ The test suite contains 208 tests covering:
 - Transitive fan-in computation (direct, transitive, circular, diamond dependencies)
 - Markdown report generation
 - Doxygen XML export (`DoxygenXmlExporter`, `DoxygenRefIdHelper`, edge classification)
+- Neo4j direct import (`Neo4jExporter` — node parameters, relationship types, edge collection without live server)
 - End-to-end pipeline scenarios
 - Comprehensive C# construct coverage verified across 4 rounds of cross-checking against the language specification
 - Portable executable build verification (single-file output, help, sample analysis)
@@ -401,7 +446,8 @@ csharp-dependency-analyzer/
 │   │   └── TransitiveFanInAnalyzer.cs      # BFS transitive closure
 │   └── Reporting/
 │       ├── MarkdownReportGenerator.cs      # Markdown report output
-│       └── DoxygenXmlExporter.cs           # Doxygen XML export (for Neo4j ingestion)
+│       ├── DoxygenXmlExporter.cs           # Doxygen XML export
+│       └── Neo4jExporter.cs                # Neo4j direct import (Bolt protocol)
 ├── tests/DependencyAnalyzer.Tests/
 │   ├── TestHelper.cs
 │   ├── RoslynWorkspaceBuilderTests.cs
@@ -414,6 +460,7 @@ csharp-dependency-analyzer/
 │   ├── Round3AuditProbeTests.cs
 │   ├── Round4FinalSweepTests.cs
 │   ├── DoxygenXmlExporterTests.cs          # Tests for Doxygen export (DX-01 – DX-23)
+│   ├── Neo4jExporterTests.cs               # Tests for Neo4j import (NJ-01 – NJ-25)
 │   ├── PortableExeTests.cs
 │   ├── CiWorkflowTests.cs
 │   ├── VersionTests.cs
