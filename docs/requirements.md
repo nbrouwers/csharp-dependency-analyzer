@@ -66,6 +66,12 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 - **NFR-1.2**: Dependency analysis shall use the Roslyn Compiler Platform (`Microsoft.CodeAnalysis.CSharp` and `Microsoft.CodeAnalysis.CSharp.Workspaces`).
 - **NFR-1.3**: The tool shall be a console application invocable from the command line.
 
+### NFR-4: Distribution
+
+- **NFR-4.1**: The build shall produce a self-contained, single-file portable executable for Windows (x64) that does not require the .NET SDK or runtime to be installed on the target machine.
+- **NFR-4.2**: The portable executable shall run on any Windows 11 system without additional prerequisites.
+- **NFR-4.3**: The portable executable shall be produced automatically as part of every build (both `dotnet build` and `dotnet publish`).
+
 ### NFR-2: Performance
 
 - **NFR-2.1**: The tool shall handle source scopes of at least 1,000 files within a reasonable time frame.

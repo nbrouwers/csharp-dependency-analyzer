@@ -8,14 +8,15 @@ This is useful when planning to move a class to a separate project or assembly: 
 
 1. **Roslyn compilation** — All listed source files are parsed and compiled in-memory using the Roslyn Compiler Platform. No `.csproj` or `.sln` is needed; the tool works directly on raw `.cs` files.
 2. **Dependency graph extraction** — A `CSharpSyntaxWalker` visits every syntax tree and records type-to-type dependency edges (inheritance, field types, method signatures, object creation, casts, pattern matching, attributes, generics, and ~40 other C# constructs).
-3. **Transitive closure** — A BFS on the reversed adjacency list computes the full set of types that depend on the target, directly or transitively.
+3. **Transitive closure** — A BFS on the reversed adjacency list computes the full set of types that depend on the target, di
+rectly or transitively.
 4. **Report generation** — Results are written to a Markdown file with a fan-in table and per-kind metrics.
 
 ## Prerequisites
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
+**To run the portable executable:** No prerequisites. The published `.exe` is fully self-contained and runs on any Windows 11 (x64) machine without the .NET SDK or runtime installed.
 
-No other tooling is required. All NuGet dependencies are restored automatically during build.
+**To build from source:** [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later. All NuGet dependencies are restored automatically.
 
 ## Building
 
@@ -25,19 +26,27 @@ cd csharp-dependency-analyzer
 dotnet build
 ```
 
-The compiled executable will be at:
+The build automatically targets `win-x64` and produces a self-contained output. The compiled executable will be at:
 
 ```
-src/DependencyAnalyzer/bin/Debug/net8.0/DependencyAnalyzer.exe    # Windows
-src/DependencyAnalyzer/bin/Debug/net8.0/DependencyAnalyzer         # Linux / macOS
+src/DependencyAnalyzer/bin/Debug/net8.0/win-x64/DependencyAnalyzer.exe
 ```
 
-For a self-contained publish (no SDK required on the target machine):
+### Publishing a Portable Executable
+
+To produce a single-file portable `.exe` (~41 MB) that requires **no .NET SDK or runtime** on the target machine:
 
 ```bash
-dotnet publish src/DependencyAnalyzer -c Release -r win-x64 --self-contained
-# or: -r linux-x64 / -r osx-arm64
+dotnet publish src/DependencyAnalyzer -c Release
 ```
+
+The output is at:
+
+```
+src/DependencyAnalyzer/bin/Release/net8.0/win-x64/publish/DependencyAnalyzer.exe
+```
+
+This single file can be copied to any Windows 11 (x64) machine and run directly — no installation required. The executable bundles the .NET runtime, Roslyn compiler libraries, and all dependencies into one compressed file.
 
 ## Usage
 
@@ -136,22 +145,42 @@ Generated: 2026-04-14 10:30:00 UTC
 
 To analyze a codebase in a completely separate repository or environment:
 
-1. **Install .NET 8.0 SDK** on the machine where you want to run the tool.
+### Option A: Portable Executable (recommended)
 
-2. **Clone or copy this repository** to the machine:
+No .NET SDK needed on the target machine.
+
+1. **Copy** `DependencyAnalyzer.exe` (from the `publish/` folder) to the target machine.
+
+2. **Generate a file list** pointing to the `.cs` files you want to analyze:
+   ```powershell
+   Get-ChildItem -Recurse -Filter *.cs C:\path\to\other-repo\src | ForEach-Object { $_.FullName } > filelist.txt
+   ```
+
+3. **Run the tool:**
+   ```powershell
+   .\DependencyAnalyzer.exe --target "OtherRepo.Domain.SomeService" --files filelist.txt --output report.md
+   ```
+
+4. **Read** `report.md` — it contains the full transitive fan-in set.
+
+### Option B: From Source
+
+Requires .NET 8.0 SDK.
+
+1. **Clone or copy this repository** to the machine:
    ```bash
    git clone <this-repo-url>
    cd csharp-dependency-analyzer
    dotnet build
    ```
 
-3. **Generate a file list** pointing to the `.cs` files you want to analyze. The paths in the file list are resolved relative to the directory containing the file list itself, so you can place it anywhere:
+2. **Generate a file list** pointing to the `.cs` files you want to analyze. The paths in the file list are resolved relative to the directory containing the file list itself, so you can place it anywhere:
    ```bash
    # Example: analyze everything under another repo's src/ folder
    find /path/to/other-repo/src -name '*.cs' > /path/to/other-repo/filelist.txt
    ```
 
-4. **Run the tool** with the fully qualified name of the class you care about:
+3. **Run the tool** with the fully qualified name of the class you care about:
    ```bash
    dotnet run --project src/DependencyAnalyzer -- \
      --target "OtherRepo.Domain.SomeService" \
@@ -159,7 +188,7 @@ To analyze a codebase in a completely separate repository or environment:
      --output /path/to/other-repo/fan-in-report.md
    ```
 
-5. **Read** `fan-in-report.md` — it contains the full transitive fan-in set.
+4. **Read** `fan-in-report.md` — it contains the full transitive fan-in set.
 
 ### Important Notes for External Codebases
 
@@ -190,7 +219,7 @@ This produces a report identifying 11 fan-in elements (7 classes, 1 interface, 1
 dotnet test
 ```
 
-The test suite contains 145 tests covering:
+The test suite contains 148 tests covering:
 
 - Roslyn workspace building and target resolution
 - Individual dependency type detection (inheritance, fields, generics, patterns, etc.)
@@ -198,6 +227,7 @@ The test suite contains 145 tests covering:
 - Markdown report generation
 - End-to-end pipeline scenarios
 - Comprehensive C# construct coverage verified across 4 rounds of cross-checking against the language specification
+- Portable executable build verification (single-file output, help, sample analysis)
 
 ## Project Structure
 
@@ -234,7 +264,8 @@ csharp-dependency-analyzer/
 │   ├── ComprehensiveDependencyTests.cs
 │   ├── GapProbeTests.cs
 │   ├── Round3AuditProbeTests.cs
-│   └── Round4FinalSweepTests.cs
+│   ├── Round4FinalSweepTests.cs
+│   └── PortableExeTests.cs
 └── samples/SampleCodebase/
     ├── filelist.txt
     ├── README.md                           # Expected results
