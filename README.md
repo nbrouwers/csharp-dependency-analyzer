@@ -271,6 +271,55 @@ Because `DependencyGraph` does not store source-file positions, every `<compound
 
 `index.xml` is a `<doxygenindex version="1.9.1">` document containing one `<compound refid="…" kind="…"><name>…</name></compound>` entry per type and per namespace compound.
 
+## Neo4j Graph Schema
+
+The `export --format neo4j` subcommand imports the internal `DependencyGraph` model into Neo4j using a schema that deliberately mirrors the Doxygen compound model (compound.xsd version 1.9.1). This makes the two export formats semantically equivalent: anything that can be expressed in the Doxygen XML can be queried in the Neo4j graph with the same concepts and terminology.
+
+### Node label and properties
+
+All nodes carry the label **`:Compound`**.
+
+| Property | Type | Description | Doxygen equivalent |
+|----------|------|-------------|-------------------|
+| `id` | string | Doxygen refid — unique and deterministic; used as the `MERGE` key. Example: `classAcme_1_1Core_1_1OrderService` | `compounddef/@id` |
+| `kind` | string | Doxygen kind string: `class`, `interface`, `struct`, `enum`, `namespace` | `compounddef/@kind` |
+| `name` | string | Compound name using `::` as namespace separator. Example: `Acme::Core::OrderService` | `<compoundname>` |
+| `fqn` | string | Original .NET fully qualified name. Example: `Acme.Core.OrderService` | — (extension) |
+| `language` | string | Always `"C#"` | `compounddef/@language` |
+
+> **`ElementKind` → `kind` mapping** — `Class`, `Record`, and `Delegate` all map to `"class"` (matching Doxygen); `Interface` → `"interface"`, `Struct` → `"struct"`, `Enum` → `"enum"`.
+
+> **Namespace nodes** — Every unique namespace prefix found within the in-scope type FQNs is also written as a `:Compound {kind: "namespace"}` node, mirroring the separate namespace compound files produced by the Doxygen export.
+
+### Relationships
+
+| Relationship | Properties | When written | Doxygen equivalent |
+|---|---|---|---|
+| `-[:BASECOMPOUNDREF {prot, virt}]->` | `prot: "public"`, `virt: "non-virtual"` | Inheritance edge | `<basecompoundref prot="public" virt="non-virtual">` |
+| `-[:BASECOMPOUNDREF {prot, virt}]->` | `prot: "public"`, `virt: "virtual"` | Interface-implementation edge | `<basecompoundref prot="public" virt="virtual">` |
+| `-[:REFERENCES {kind, reason}]->` | `kind: "variable"`, `reason: "…"` | All other usage edges (field type, method param, …) | `<memberdef kind="variable"><references>` |
+| `-[:INNERCLASS {prot}]->` | `prot: "public"` | Namespace compound → each type it directly contains | `<innerclass prot="public">` |
+
+### Example Cypher queries
+
+```cypher
+// Find all types in a namespace
+MATCH (ns:Compound {kind: "namespace", name: "Acme::Core"})-[:INNERCLASS]->(t)
+RETURN t.name, t.kind
+
+// Find all types that inherit from or implement a given type
+MATCH (child)-[:BASECOMPOUNDREF]->(parent:Compound {name: "Acme::Core::OrderService"})
+RETURN child.name, child.kind
+
+// Find all usage dependencies of a type
+MATCH (src:Compound {name: "Acme::Core::OrderService"})-[r:REFERENCES]->(tgt)
+RETURN tgt.name, r.reason
+
+// Transitive fan-in: all types that directly or indirectly depend on a target
+MATCH p = (dependent)-[:BASECOMPOUNDREF|REFERENCES*1..]->(target:Compound {name: "Acme::Core::OrderService"})
+RETURN DISTINCT dependent.name, dependent.kind
+```
+
 ## Using on a Different Codebase
 
 To analyze a codebase in a completely separate repository or environment:
