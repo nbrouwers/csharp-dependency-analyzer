@@ -33,6 +33,7 @@ public sealed class TransitiveFanInAnalyzer
         // BFS from target on reverse graph
         var visited = new Dictionary<string, string>(); // FQN → justification
         var depth = new Dictionary<string, int>(); // FQN → depth (1 = direct)
+        var fanInEdges = new List<(string SourceFqn, string TargetFqn)>();
         var queue = new Queue<(string Fqn, int Depth)>();
         queue.Enqueue((targetFqn, 0));
 
@@ -56,6 +57,7 @@ public sealed class TransitiveFanInAnalyzer
                 var justification = BuildJustification(dependor, current, reason, targetFqn);
                 visited[dependor] = justification;
                 depth[dependor] = currentDepth + 1;
+                fanInEdges.Add((dependor, current));
                 queue.Enqueue((dependor, currentDepth + 1));
             }
         }
@@ -75,7 +77,8 @@ public sealed class TransitiveFanInAnalyzer
         {
             TargetFqn = targetFqn,
             FanInElements = fanInElements,
-            MaxTransitiveDepth = depth.Count > 0 ? depth.Values.Max() : 0
+            MaxTransitiveDepth = depth.Count > 0 ? depth.Values.Max() : 0,
+            FanInEdges = fanInEdges
         };
     }
 

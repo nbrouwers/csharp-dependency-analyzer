@@ -12,7 +12,8 @@ public class MarkdownReportGeneratorTests
         {
             TargetFqn = "N.Target",
             FanInElements = new List<FanInElement>(),
-            MaxTransitiveDepth = 0
+            MaxTransitiveDepth = 0,
+            FanInEdges = new List<(string, string)>()
         };
 
         var generator = new MarkdownReportGenerator();
@@ -28,7 +29,8 @@ public class MarkdownReportGeneratorTests
         {
             TargetFqn = "N.Target",
             FanInElements = new List<FanInElement>(),
-            MaxTransitiveDepth = 0
+            MaxTransitiveDepth = 0,
+            FanInEdges = new List<(string, string)>()
         };
 
         var generator = new MarkdownReportGenerator();
@@ -44,7 +46,8 @@ public class MarkdownReportGeneratorTests
         {
             TargetFqn = "N.Target",
             FanInElements = new List<FanInElement>(),
-            MaxTransitiveDepth = 0
+            MaxTransitiveDepth = 0,
+            FanInEdges = new List<(string, string)>()
         };
 
         var generator = new MarkdownReportGenerator();
@@ -64,7 +67,12 @@ public class MarkdownReportGeneratorTests
                 new("N.ClassA", ElementKind.Class, "Field type `Target`"),
                 new("N.IFoo", ElementKind.Interface, "Method return type `Target`"),
             },
-            MaxTransitiveDepth = 1
+            MaxTransitiveDepth = 1,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.ClassA", "N.Target"),
+                ("N.IFoo", "N.Target")
+            }
         };
 
         var generator = new MarkdownReportGenerator();
@@ -89,7 +97,13 @@ public class MarkdownReportGeneratorTests
                 new("N.B", ElementKind.Class, "reason"),
                 new("N.I", ElementKind.Interface, "reason"),
             },
-            MaxTransitiveDepth = 1
+            MaxTransitiveDepth = 1,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.A", "N.Target"),
+                ("N.B", "N.Target"),
+                ("N.I", "N.Target")
+            }
         };
 
         var generator = new MarkdownReportGenerator();
@@ -109,7 +123,11 @@ public class MarkdownReportGeneratorTests
             {
                 new("N.A", ElementKind.Class, "reason"),
             },
-            MaxTransitiveDepth = 4
+            MaxTransitiveDepth = 4,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.A", "N.Target")
+            }
         };
 
         var generator = new MarkdownReportGenerator();
@@ -125,7 +143,8 @@ public class MarkdownReportGeneratorTests
         {
             TargetFqn = "N.Target",
             FanInElements = new List<FanInElement>(),
-            MaxTransitiveDepth = 0
+            MaxTransitiveDepth = 0,
+            FanInEdges = new List<(string, string)>()
         };
 
         var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
@@ -142,5 +161,137 @@ public class MarkdownReportGeneratorTests
         {
             if (File.Exists(tempFile)) File.Delete(tempFile);
         }
+    }
+
+    [Fact]
+    public void Generate_WithElements_ContainsMermaidGraph()
+    {
+        var result = new AnalysisResult
+        {
+            TargetFqn = "N.Target",
+            FanInElements = new List<FanInElement>
+            {
+                new("N.A", ElementKind.Class, "reason"),
+                new("N.B", ElementKind.Interface, "reason"),
+            },
+            MaxTransitiveDepth = 1,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.A", "N.Target"),
+                ("N.B", "N.Target")
+            }
+        };
+
+        var generator = new MarkdownReportGenerator();
+        var report = generator.Generate(result);
+
+        Assert.Contains("## Dependency Graph", report);
+        Assert.Contains("```mermaid", report);
+        Assert.Contains("graph LR", report);
+        Assert.Contains("classDef target", report);
+    }
+
+    [Fact]
+    public void Generate_MermaidGraph_ContainsTargetNode()
+    {
+        var result = new AnalysisResult
+        {
+            TargetFqn = "N.Target",
+            FanInElements = new List<FanInElement>
+            {
+                new("N.A", ElementKind.Class, "reason"),
+            },
+            MaxTransitiveDepth = 1,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.A", "N.Target")
+            }
+        };
+
+        var generator = new MarkdownReportGenerator();
+        var report = generator.Generate(result);
+
+        Assert.Contains("[\"Target\"]:::target", report);
+    }
+
+    [Fact]
+    public void Generate_MermaidGraph_ContainsEdges()
+    {
+        var result = new AnalysisResult
+        {
+            TargetFqn = "N.Target",
+            FanInElements = new List<FanInElement>
+            {
+                new("N.A", ElementKind.Class, "reason"),
+                new("N.B", ElementKind.Class, "reason"),
+            },
+            MaxTransitiveDepth = 2,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.A", "N.Target"),
+                ("N.B", "N.A")
+            }
+        };
+
+        var generator = new MarkdownReportGenerator();
+        var report = generator.Generate(result);
+
+        // Two edges should appear
+        Assert.Equal(2, CountOccurrences(report, " --> "));
+    }
+
+    [Fact]
+    public void Generate_MermaidGraph_AppliesKindStyles()
+    {
+        var result = new AnalysisResult
+        {
+            TargetFqn = "N.Target",
+            FanInElements = new List<FanInElement>
+            {
+                new("N.A", ElementKind.Class, "reason"),
+                new("N.I", ElementKind.Interface, "reason"),
+            },
+            MaxTransitiveDepth = 1,
+            FanInEdges = new List<(string, string)>
+            {
+                ("N.A", "N.Target"),
+                ("N.I", "N.Target")
+            }
+        };
+
+        var generator = new MarkdownReportGenerator();
+        var report = generator.Generate(result);
+
+        Assert.Contains(":::class", report);
+        Assert.Contains(":::interface", report);
+    }
+
+    [Fact]
+    public void Generate_EmptyFanIn_NoMermaidGraph()
+    {
+        var result = new AnalysisResult
+        {
+            TargetFqn = "N.Target",
+            FanInElements = new List<FanInElement>(),
+            MaxTransitiveDepth = 0,
+            FanInEdges = new List<(string, string)>()
+        };
+
+        var generator = new MarkdownReportGenerator();
+        var report = generator.Generate(result);
+
+        Assert.DoesNotContain("```mermaid", report);
+    }
+
+    private static int CountOccurrences(string text, string pattern)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(pattern, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += pattern.Length;
+        }
+        return count;
     }
 }

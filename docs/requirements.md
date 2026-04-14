@@ -59,6 +59,7 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
   - Maximum transitive depth (the longest chain of dependency layers from any fan-in element back to the target)
 - **FR-4.4**: The report shall be written to a file in a structured, human-readable format (Markdown).
 - **FR-4.5**: The console output shall also report the maximum transitive depth alongside the fan-in element count.
+- **FR-4.6**: The report shall contain a **dependency graph** rendered as a Mermaid diagram showing the target, all fan-in elements, and edges between them. The target node shall be visually distinct from fan-in elements.
 
 ## 4. Non-Functional Requirements
 
@@ -125,6 +126,18 @@ A Markdown report file with the following structure:
 | Interface | N     |
 | ...       |       |
 | **Total** | **N** |
+```
+
+```
+## Dependency Graph
+
+` ` `mermaid
+graph LR
+    target["TargetClass"]:::target
+    node1["DependorA"] --> target
+    node2["DependorB"] --> node1
+    classDef target fill:#f96,stroke:#333,stroke-width:2px
+` ` `
 ```
 
 ## 6. Validation Requirements

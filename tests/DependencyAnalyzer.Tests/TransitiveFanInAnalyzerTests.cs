@@ -189,4 +189,39 @@ public class TransitiveFanInAnalyzerTests
 
         Assert.Equal(2, result.MaxTransitiveDepth);
     }
+
+    [Fact]
+    public void FanInEdges_DirectOnly_ContainsEdgesToTarget()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class A : Target {} }",
+            "namespace N { public class B { private Target _t; } }");
+
+        Assert.Equal(2, result.FanInEdges.Count);
+        Assert.All(result.FanInEdges, e => Assert.Equal("N.Target", e.TargetFqn));
+    }
+
+    [Fact]
+    public void FanInEdges_TransitiveChain_ContainsIntermediateEdges()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class A : Target {} }",
+            "namespace N { public class B : A {} }");
+
+        Assert.Equal(2, result.FanInEdges.Count);
+        Assert.Contains(result.FanInEdges, e => e.SourceFqn == "N.A" && e.TargetFqn == "N.Target");
+        Assert.Contains(result.FanInEdges, e => e.SourceFqn == "N.B" && e.TargetFqn == "N.A");
+    }
+
+    [Fact]
+    public void FanInEdges_NoFanIn_IsEmpty()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class Unrelated {} }");
+
+        Assert.Empty(result.FanInEdges);
+    }
 }

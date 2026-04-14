@@ -110,6 +110,7 @@ The output is a Markdown file containing:
 
 - A **fan-in table** listing every type that depends (directly or transitively) on the target, with its kind and a human-readable justification chain.
 - A **metrics summary** with counts per element kind and the total.
+- A **dependency graph** rendered as a [Mermaid](https://mermaid.js.org/) diagram showing the target node (highlighted in orange), all fan-in elements (color-coded by kind), and directed edges representing dependency relationships. GitHub renders Mermaid diagrams natively in Markdown files.
 
 Example output:
 
