@@ -1,0 +1,18 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vs/
+
+# Test results
+TestResults/
+
+# NuGet
+*.nupkg
