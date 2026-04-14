@@ -143,6 +143,7 @@ A Markdown report file with the following structure:
   - Correct element kind classification.
   - Correct handling of edge cases (circular dependencies, self-references, no fan-in).
   - Error handling (invalid FQN, missing files).
+- **VR-2.3**: A test report document (`docs/test-report.md`) shall catalog every test case with its identifier, description, test level, and traceability to requirements. The report shall be kept up to date when tests are added or removed.
 
 ### VR-3: Cross-LLM Validation
 

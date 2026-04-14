@@ -221,7 +221,7 @@ This produces a report identifying 11 fan-in elements (7 classes, 1 interface, 1
 dotnet test
 ```
 
-The test suite contains 155 tests covering:
+The test suite contains 160 tests covering:
 
 - Roslyn workspace building and target resolution
 - Individual dependency type detection (inheritance, fields, generics, patterns, etc.)
@@ -231,6 +231,9 @@ The test suite contains 155 tests covering:
 - Comprehensive C# construct coverage verified across 4 rounds of cross-checking against the language specification
 - Portable executable build verification (single-file output, help, sample analysis)
 - CI workflow structure validation
+- Test report document structure validation
+
+For a detailed catalog of every test case with traceability to requirements, see [docs/test-report.md](docs/test-report.md).
 
 ## Project Structure
 
@@ -245,7 +248,8 @@ csharp-dependency-analyzer/
 ├── nuget.config
 ├── docs/
 │   ├── requirements.md
-│   └── implementation-plan.md
+│   ├── implementation-plan.md
+│   └── test-report.md                      # Test inventory and traceability matrix
 ├── src/DependencyAnalyzer/
 │   ├── DependencyAnalyzer.csproj
 │   ├── Program.cs                          # CLI entry point
@@ -274,7 +278,8 @@ csharp-dependency-analyzer/
 │   ├── Round3AuditProbeTests.cs
 │   ├── Round4FinalSweepTests.cs
 │   ├── PortableExeTests.cs
-│   └── CiWorkflowTests.cs
+│   ├── CiWorkflowTests.cs
+│   └── TestReportDocTests.cs
 └── samples/SampleCodebase/
     ├── filelist.txt
     ├── README.md                           # Expected results
