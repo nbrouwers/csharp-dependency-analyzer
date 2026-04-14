@@ -75,7 +75,7 @@ src/Services/OrderPipeline.cs
 > ```
 > On Windows PowerShell:
 > ```powershell
-> Get-ChildItem -Recurse -Filter *.cs src | ForEach-Object { $_.FullName } > filelist.txt
+> Get-ChildItem -Recurse -Filter *.cs src | ForEach-Object { $_.FullName } | Set-Content -Encoding UTF8 filelist.txt
 > ```
 
 ### 2. Run the analyzer
@@ -155,7 +155,7 @@ No .NET SDK needed on the target machine.
 
 2. **Generate a file list** pointing to the `.cs` files you want to analyze:
    ```powershell
-   Get-ChildItem -Recurse -Filter *.cs C:\path\to\other-repo\src | ForEach-Object { $_.FullName } > filelist.txt
+   Get-ChildItem -Recurse -Filter *.cs C:\path\to\other-repo\src | ForEach-Object { $_.FullName } | Set-Content -Encoding UTF8 filelist.txt
    ```
 
 3. **Run the tool:**
