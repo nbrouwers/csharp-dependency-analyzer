@@ -89,6 +89,17 @@ Update the root [README.md](../../README.md) to reflect the new feature:
 
 Already handled in step 1. Double-check that the requirement text is consistent with the actual implementation.
 
+### 5.3 test-report.md
+
+Update [docs/test-report.md](../../docs/test-report.md) to reflect the new or changed tests:
+
+- **Section 2 (Summary by Test File)** — update test counts for affected files; add a new row if a new test file was created.
+- **Section 3 (Test Inventory)** — add entries for every new test with ID, method name, description, and level. Follow the existing ID prefix convention for the file (e.g. `CD-*`, `GP-*`, `FA-*`).
+- **Section 4 (Requirement Traceability Matrix)** — add the new test IDs to the corresponding requirement row(s).
+- **Section 5 (Coverage by C# Construct Category)** — add new test IDs to the appropriate category row, or add a new category if needed.
+- **Header metadata** — update `Total test cases` and `Last updated` in the document header.
+- **Section 6 (Latest Run)** — update the total count to match the current `dotnet test` output.
+
 ## 6. Build Verification
 
 Run a clean build to ensure there are no warnings or errors:
