@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] — 2026-04-14
+
+### Added
+- **Neo4j direct import** (`export --format neo4j`): connects directly to a running Neo4j database server via the Bolt protocol and imports the full type dependency graph — no intermediate files produced. Each type is written as a `(:Type {fqn, name, kind, namespace})` node; dependency edges become typed relationships (`:INHERITS_FROM`, `:IMPLEMENTS`, `:DEPENDS_ON {reason}`). All writes use `MERGE`, making the import fully idempotent.
+- New CLI options on the `export` subcommand: `--neo4j-uri` (default `bolt://localhost:7687`), `--neo4j-user` (default `neo4j`), `--neo4j-password` (or `NEO4J_PASSWORD` environment variable), `--neo4j-database` (default `neo4j`). The password is never logged.
+- `Neo4j.Driver` 6.0.0 added as a dependency.
+
+### Changed
+- `--output-dir` is no longer a required option at parse time; it is validated at runtime and only required when `--format doxygen` is used.
+- `--format` on the `export` subcommand now accepts `doxygen` (existing) and `neo4j` (new).
+
 ## [2.0.0] — 2026-04-14
 
 ### Added
