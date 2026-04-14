@@ -4,7 +4,7 @@
 > **Last updated:** 2026-04-14  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 174  
+> **Total test cases:** 179  
 > **Pass rate:** 100 %
 
 ---
@@ -44,7 +44,7 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 1 | `RoslynWorkspaceBuilderTests.cs` | 5 | Unit | FR-1, FR-2 |
 | 2 | `DependencyGraphBuilderTests.cs` | 15 | Unit | FR-3.1, FR-3.2 |
 | 3 | `TransitiveFanInAnalyzerTests.cs` | 18 | Unit | FR-3.3, FR-3.4, FR-4.3, FR-4.5, FR-4.6 |
-| 4 | `MarkdownReportGeneratorTests.cs` | 12 | Unit | FR-4.1–FR-4.6 |
+| 4 | `MarkdownReportGeneratorTests.cs` | 13 | Unit | FR-4.1–FR-4.6 |
 | 5 | `EndToEndTests.cs` | 4 | Integration | FR-1–FR-4 |
 | 6 | `ComprehensiveDependencyTests.cs` | 37 | Unit | FR-3.2 |
 | 7 | `GapProbeTests.cs` | 16 | Unit | FR-3.2 |
@@ -52,7 +52,8 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 9 | `Round4FinalSweepTests.cs` | 19 | Integration | FR-3.2 |
 | 10 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
 | 11 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
-| | **Total** | **174** | | |
+| 12 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
+| | **Total** | **179** | | |
 
 ---
 
@@ -304,6 +305,23 @@ Validates the GitHub Actions CI workflow configuration. Traces to **NFR-5.1**–
 | CI-06 | `Workflow_TriggersOnPush` | Workflow triggers on `push` events. | Infrastructure |
 | CI-07 | `Workflow_TriggersOnPullRequest` | Workflow triggers on `pull_request` events. | Infrastructure |
 
+### 3.12 VersionTests (4 tests)
+
+Validates semantic versioning configuration and assembly embedding. Traces to **NFR-6.1**–**NFR-6.4**.
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| VR-01 | `Csproj_ContainsVersionElement` | `.csproj` has a `<Version>` element with MAJOR.MINOR.PATCH format. | Infrastructure |
+| VR-02 | `Csproj_VersionFollowsSemVer` | Version string has three numeric parts. | Infrastructure |
+| VR-03 | `Assembly_HasInformationalVersion` | Compiled assembly has `AssemblyInformationalVersionAttribute`. | Infrastructure |
+| VR-04 | `Assembly_VersionMatchesCsproj` | Assembly version matches the `.csproj` `<Version>` value. | Infrastructure |
+
+### 3.13 MarkdownReportGeneratorTests — Version Line (1 test)
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| RG-13 | `Generate_ContainsVersionLine` | Report contains tool version in header. | Unit |
+
 ---
 
 ## 4. Requirement Traceability Matrix
@@ -323,6 +341,7 @@ Validates the GitHub Actions CI workflow configuration. Traces to **NFR-5.1**–
 | **FR-4.4**: Markdown file output | RG-06 | Full |
 | **NFR-4.1–4.3**: Portable executable | PE-01–03 | Full |
 | **NFR-5.1–5.3**: CI pipeline | CI-01–07 | Full |
+| **NFR-6.1–6.4**: Versioning | VR-01–04, RG-13 | Full |
 
 ---
 
@@ -373,7 +392,7 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 174, failed: 0, succeeded: 174, skipped: 0
+Test summary: total: 179, failed: 0, succeeded: 179, skipped: 0
 Duration: ~9s
 ```
 
@@ -392,5 +411,6 @@ Tests were developed across four iterative cross-check rounds against the C# lan
 | Post-feature additions | 10 | — | — | 155 |
 | Max transitive depth | 6 | — | — | 166 |
 | Dependency graph | 8 | — | — | 174 |
+| Semantic versioning | 5 | — | — | 179 |
 
 Round 4 finding zero gaps confirmed convergence: all mainstream C# constructs are covered.

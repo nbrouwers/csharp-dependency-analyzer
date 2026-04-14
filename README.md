@@ -103,6 +103,7 @@ Or, if you built/published the executable directly:
 | `--target` | Yes | — | Fully qualified name of the target class (e.g. `MyCompany.Core.OrderService`). |
 | `--files` | Yes | — | Path to a text file containing one source file path per line. |
 | `--output` | No | `dependency-report.md` | Path for the generated Markdown report. |
+| `--version` | No | — | Print the tool version and exit. |
 
 ### 3. Read the report
 
@@ -217,6 +218,14 @@ dotnet run --project src/DependencyAnalyzer -- \
 
 This produces a report identifying 11 fan-in elements (7 classes, 1 interface, 1 struct, 1 record, 1 delegate). See `samples/SampleCodebase/README.md` for the expected results.
 
+## Versioning
+
+This project follows [Semantic Versioning 2.0.0](https://semver.org/). The version is defined in `src/DependencyAnalyzer/DependencyAnalyzer.csproj` and embedded into the assembly at build time.
+
+- **CLI**: `DependencyAnalyzer --version` prints the current version.
+- **Reports**: Each generated Markdown report includes the tool version in its header.
+- **Releases**: See [`.github/prompts/new-release.prompt.md`](.github/prompts/new-release.prompt.md) for the release procedure.
+
 ## Running Tests
 
 ```bash
@@ -243,7 +252,8 @@ For a detailed catalog of every test case with traceability to requirements, see
 csharp-dependency-analyzer/
 ├── .github/
 │   ├── prompts/
-│   │   └── new-feature.prompt.md           # New feature procedure (Copilot prompt)
+│   │   ├── new-feature.prompt.md           # New feature procedure (Copilot prompt)
+│   │   └── new-release.prompt.md           # Release procedure (Copilot prompt)
 │   └── workflows/
 │       └── ci.yml                          # GitHub Actions CI pipeline
 ├── CSharpDependencyAnalyzer.sln
@@ -281,6 +291,7 @@ csharp-dependency-analyzer/
 │   ├── Round4FinalSweepTests.cs
 │   ├── PortableExeTests.cs
 │   ├── CiWorkflowTests.cs
+│   ├── VersionTests.cs
 │   └── TestReportDocTests.cs
 └── samples/SampleCodebase/
     ├── filelist.txt

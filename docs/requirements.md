@@ -92,6 +92,13 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 - **NFR-3.1**: The tool shall provide clear error messages for invalid inputs (missing target class, unparseable files, etc.).
 - **NFR-3.2**: The tool shall log progress during analysis (e.g., number of files parsed, analysis phase).
 
+### NFR-6: Versioning
+
+- **NFR-6.1**: The project shall follow [Semantic Versioning 2.0.0](https://semver.org/) (MAJOR.MINOR.PATCH).
+- **NFR-6.2**: The version shall be defined in the `.csproj` file using `<Version>` and embedded into the assembly at build time.
+- **NFR-6.3**: The CLI shall display the version when invoked with `--version`.
+- **NFR-6.4**: The generated Markdown report shall include the tool version in its header.
+
 ## 5. Input / Output Specification
 
 ### 5.1 Input

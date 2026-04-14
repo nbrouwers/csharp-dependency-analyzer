@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.Reflection;
 using DependencyAnalyzer.Analysis;
 using DependencyAnalyzer.Reporting;
 
@@ -32,7 +33,12 @@ static void Run(string targetFqn, string filesPath, string outputPath)
 {
     try
     {
-        Console.WriteLine($"C# Dependency Analyzer");
+        var version = typeof(MarkdownReportGenerator).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? typeof(MarkdownReportGenerator).Assembly.GetName().Version?.ToString()
+            ?? "unknown";
+
+        Console.WriteLine($"C# Dependency Analyzer v{version}");
         Console.WriteLine($"Target: {targetFqn}");
         Console.WriteLine();
 
