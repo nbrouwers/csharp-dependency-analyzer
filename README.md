@@ -1,5 +1,7 @@
 # C# Dependency Analyzer
 
+[![CI](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml)
+
 A Roslyn-based static analysis tool that computes the **transitive fan-in** of a specified C# class. Given a target class and a set of source files, it identifies every type (class, interface, struct, enum, record, delegate) that directly or transitively depends on the target — producing a Markdown report with justifications and metrics.
 
 This is useful when planning to move a class to a separate project or assembly: the fan-in set tells you exactly which types must move along with it to avoid breaking compilation.
@@ -219,7 +221,7 @@ This produces a report identifying 11 fan-in elements (7 classes, 1 interface, 1
 dotnet test
 ```
 
-The test suite contains 148 tests covering:
+The test suite contains 155 tests covering:
 
 - Roslyn workspace building and target resolution
 - Individual dependency type detection (inheritance, fields, generics, patterns, etc.)
@@ -228,11 +230,17 @@ The test suite contains 148 tests covering:
 - End-to-end pipeline scenarios
 - Comprehensive C# construct coverage verified across 4 rounds of cross-checking against the language specification
 - Portable executable build verification (single-file output, help, sample analysis)
+- CI workflow structure validation
 
 ## Project Structure
 
 ```
 csharp-dependency-analyzer/
+├── .github/
+│   ├── prompts/
+│   │   └── new-feature.prompt.md           # New feature procedure (Copilot prompt)
+│   └── workflows/
+│       └── ci.yml                          # GitHub Actions CI pipeline
 ├── CSharpDependencyAnalyzer.sln
 ├── nuget.config
 ├── docs/
@@ -265,7 +273,8 @@ csharp-dependency-analyzer/
 │   ├── GapProbeTests.cs
 │   ├── Round3AuditProbeTests.cs
 │   ├── Round4FinalSweepTests.cs
-│   └── PortableExeTests.cs
+│   ├── PortableExeTests.cs
+│   └── CiWorkflowTests.cs
 └── samples/SampleCodebase/
     ├── filelist.txt
     ├── README.md                           # Expected results
@@ -302,6 +311,16 @@ The dependency visitor detects type references across all mainstream C# construc
 | [Microsoft.CodeAnalysis.CSharp.Workspaces](https://www.nuget.org/packages/Microsoft.CodeAnalysis.CSharp.Workspaces) | 4.12.0 | Roslyn workspace support |
 | [System.CommandLine](https://www.nuget.org/packages/System.CommandLine) | 2.0.0-beta4 | CLI argument parsing |
 | [xUnit](https://www.nuget.org/packages/xunit) | 2.5.3 | Test framework (test project only) |
+
+## CI / CD
+
+A GitHub Actions workflow runs automatically on every push and pull request:
+
+1. **Test** — Restores, builds, and runs the full test suite on `windows-latest`.
+2. **Publish** — If tests pass, publishes the self-contained single-file executable.
+3. **Artifact** — Uploads `DependencyAnalyzer.exe` as a downloadable build artifact (retained for 90 days).
+
+To download the latest artifact: go to the [Actions tab](https://github.com/nbrouwers/csharp-dependency-analyzer/actions), select the latest successful run, and download **DependencyAnalyzer-win-x64** from the Artifacts section.
 
 ## License
 

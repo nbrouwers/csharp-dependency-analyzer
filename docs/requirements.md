@@ -72,6 +72,13 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 - **NFR-4.2**: The portable executable shall run on any Windows 11 system without additional prerequisites.
 - **NFR-4.3**: The portable executable shall be produced automatically as part of every build (both `dotnet build` and `dotnet publish`).
 
+### NFR-5: Continuous Integration
+
+- **NFR-5.1**: A GitHub Actions workflow shall run automatically on every push to any branch and on every pull request to `main`.
+- **NFR-5.2**: The CI pipeline shall execute the full test suite; the build shall not proceed if any test fails.
+- **NFR-5.3**: Upon successful tests, the pipeline shall publish the self-contained portable executable as a downloadable build artifact.
+- **NFR-5.4**: The workflow shall use a pinned .NET SDK version to ensure reproducible builds.
+
 ### NFR-2: Performance
 
 - **NFR-2.1**: The tool shall handle source scopes of at least 1,000 files within a reasonable time frame.
