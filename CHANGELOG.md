@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] — 2026-04-15
+
+### Changed
+- **Breaking change — Neo4j graph schema**: the Neo4j export now uses a schema that mirrors the Doxygen compound model (compound.xsd version 1.9.1). Node label changed from `:Type` to `:Compound`; the MERGE key is now the Doxygen `refid` (`id` property) instead of `fqn`. Node properties changed from `{fqn, name, kind, namespace}` to `{id, kind, name, fqn, language}`, where `kind` is now a lowercase Doxygen kind string (`class`, `interface`, `struct`, `enum`) and `name` uses `::` as namespace separator (mirroring `<compoundname>`). Relationship types changed from `:INHERITS_FROM` / `:IMPLEMENTS` / `:DEPENDS_ON {reason}` to `:BASECOMPOUNDREF {prot, virt}` / `:REFERENCES {kind, reason}` mirroring the Doxygen XML equivalents.
+- **Namespace compound nodes**: namespace prefixes found in the in-scope type FQNs are now imported as `:Compound {kind: "namespace"}` nodes, mirroring the Doxygen namespace compound files. Each namespace node is connected to the types it directly contains via `:INNERCLASS {prot: "public"}` relationships, mirroring `<innerclass>` elements in Doxygen XML.
+- README updated with a dedicated "Neo4j Graph Schema" section documenting nodes, relationships, and example Cypher queries.
+
+### Removed
+- `ExtractShortName`, `ExtractNamespace`, and `GetRelationshipType` internal helpers on `Neo4jExporter` (superseded by `DoxygenRefIdHelper`).
+
 ## [2.1.0] — 2026-04-14
 
 ### Added
