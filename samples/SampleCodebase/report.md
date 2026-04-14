@@ -2,7 +2,7 @@
 
 ## Target: `SampleApp.Core.OrderService`
 
-## Date: 2026-04-14 13:07:03 UTC
+## Date: 2026-04-14 13:19:46 UTC
 
 ## Fan-In Elements
 
@@ -37,17 +37,17 @@
 ```mermaid
 graph LR
     n0["OrderService"]:::target
-    n1["IOrderRepository"]:::interface
-    n2["OrderCreatedHandler"]:::delegate
-    n3["OrderRecord"]:::record
-    n4["OrderValidator"]:::class
-    n5["OrderEntity"]:::struct
-    n6["AdminController"]:::class
-    n7["OrderController"]:::class
-    n8["OrderFactory"]:::class
-    n9["OrderInspector"]:::class
-    n10["OrderLogger"]:::class
-    n11["OrderPipeline"]:::class
+    n1["IOrderRepository"]:::kind_interface
+    n2["OrderCreatedHandler"]:::kind_delegate
+    n3["OrderRecord"]:::kind_record
+    n4["OrderValidator"]:::kind_class
+    n5["OrderEntity"]:::kind_struct
+    n6["AdminController"]:::kind_class
+    n7["OrderController"]:::kind_class
+    n8["OrderFactory"]:::kind_class
+    n9["OrderInspector"]:::kind_class
+    n10["OrderLogger"]:::kind_class
+    n11["OrderPipeline"]:::kind_class
     n1 --> n0
     n4 --> n0
     n11 --> n0
@@ -60,11 +60,11 @@ graph LR
     n10 --> n0
     n6 --> n7
     classDef target fill:#f96,stroke:#333,stroke-width:2px
-    classDef class fill:#bbf,stroke:#333
-    classDef interface fill:#bfb,stroke:#333
-    classDef struct fill:#fbf,stroke:#333
-    classDef enum fill:#ffb,stroke:#333
-    classDef record fill:#bff,stroke:#333
-    classDef delegate fill:#fbb,stroke:#333
+    classDef kind_class fill:#bbf,stroke:#333
+    classDef kind_interface fill:#bfb,stroke:#333
+    classDef kind_struct fill:#fbf,stroke:#333
+    classDef kind_enum fill:#ffb,stroke:#333
+    classDef kind_record fill:#bff,stroke:#333
+    classDef kind_delegate fill:#fbb,stroke:#333
 ```
 

@@ -262,8 +262,8 @@ public class MarkdownReportGeneratorTests
         var generator = new MarkdownReportGenerator();
         var report = generator.Generate(result);
 
-        Assert.Contains(":::class", report);
-        Assert.Contains(":::interface", report);
+        Assert.Contains(":::kind_class", report);
+        Assert.Contains(":::kind_interface", report);
     }
 
     [Fact]

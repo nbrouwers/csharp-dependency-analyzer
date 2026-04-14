@@ -98,7 +98,7 @@ public sealed class MarkdownReportGenerator
             foreach (var element in result.FanInElements)
             {
                 var id = GetNodeId(element.FullyQualifiedName);
-                var cssClass = element.Kind.ToString().ToLowerInvariant();
+                var cssClass = "kind_" + element.Kind.ToString().ToLowerInvariant();
                 sb.AppendLine($"    {id}[\"{GetShortName(element.FullyQualifiedName)}\"]:::{cssClass}");
             }
 
@@ -110,12 +110,12 @@ public sealed class MarkdownReportGenerator
 
             // Style definitions
             sb.AppendLine("    classDef target fill:#f96,stroke:#333,stroke-width:2px");
-            sb.AppendLine("    classDef class fill:#bbf,stroke:#333");
-            sb.AppendLine("    classDef interface fill:#bfb,stroke:#333");
-            sb.AppendLine("    classDef struct fill:#fbf,stroke:#333");
-            sb.AppendLine("    classDef enum fill:#ffb,stroke:#333");
-            sb.AppendLine("    classDef record fill:#bff,stroke:#333");
-            sb.AppendLine("    classDef delegate fill:#fbb,stroke:#333");
+            sb.AppendLine("    classDef kind_class fill:#bbf,stroke:#333");
+            sb.AppendLine("    classDef kind_interface fill:#bfb,stroke:#333");
+            sb.AppendLine("    classDef kind_struct fill:#fbf,stroke:#333");
+            sb.AppendLine("    classDef kind_enum fill:#ffb,stroke:#333");
+            sb.AppendLine("    classDef kind_record fill:#bff,stroke:#333");
+            sb.AppendLine("    classDef kind_delegate fill:#fbb,stroke:#333");
             sb.AppendLine("```");
             sb.AppendLine();
         }
