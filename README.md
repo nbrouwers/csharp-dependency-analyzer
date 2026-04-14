@@ -133,6 +133,7 @@ Generated: 2026-04-14 10:30:00 UTC
 |------|-------|
 | Class | 2 |
 | **Total** | **2** |
+| **Max Transitive Depth** | **2** |
 ```
 
 ### Exit Codes

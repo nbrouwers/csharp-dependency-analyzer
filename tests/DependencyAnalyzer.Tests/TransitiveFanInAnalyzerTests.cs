@@ -132,4 +132,61 @@ public class TransitiveFanInAnalyzerTests
         Assert.Equal(1, result.MetricsByKind[ElementKind.Interface]);
         Assert.Equal(3, result.TotalFanInCount);
     }
+
+    [Fact]
+    public void MaxTransitiveDepth_DirectOnly_IsOne()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class A : Target {} }",
+            "namespace N { public class B { private Target _t; } }");
+
+        Assert.Equal(1, result.MaxTransitiveDepth);
+    }
+
+    [Fact]
+    public void MaxTransitiveDepth_TwoLevels_IsTwo()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class A : Target {} }",
+            "namespace N { public class B : A {} }");
+
+        Assert.Equal(2, result.MaxTransitiveDepth);
+    }
+
+    [Fact]
+    public void MaxTransitiveDepth_ThreeLevels_IsThree()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class A : Target {} }",
+            "namespace N { public class B : A {} }",
+            "namespace N { public class C : B {} }");
+
+        Assert.Equal(3, result.MaxTransitiveDepth);
+    }
+
+    [Fact]
+    public void MaxTransitiveDepth_NoFanIn_IsZero()
+    {
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class Unrelated {} }");
+
+        Assert.Equal(0, result.MaxTransitiveDepth);
+    }
+
+    [Fact]
+    public void MaxTransitiveDepth_Diamond_IsTwo()
+    {
+        // A→Target, B→Target, C→A and C→B → depth of C is 2
+        var result = TestHelper.Analyze("N.Target",
+            "namespace N { public class Target {} }",
+            "namespace N { public class A : Target {} }",
+            "namespace N { public class B { private Target _t; } }",
+            "namespace N { public class C { private A _a; private B _b; } }");
+
+        Assert.Equal(2, result.MaxTransitiveDepth);
+    }
 }

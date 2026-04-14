@@ -11,7 +11,8 @@ public class MarkdownReportGeneratorTests
         var result = new AnalysisResult
         {
             TargetFqn = "N.Target",
-            FanInElements = new List<FanInElement>()
+            FanInElements = new List<FanInElement>(),
+            MaxTransitiveDepth = 0
         };
 
         var generator = new MarkdownReportGenerator();
@@ -26,7 +27,8 @@ public class MarkdownReportGeneratorTests
         var result = new AnalysisResult
         {
             TargetFqn = "N.Target",
-            FanInElements = new List<FanInElement>()
+            FanInElements = new List<FanInElement>(),
+            MaxTransitiveDepth = 0
         };
 
         var generator = new MarkdownReportGenerator();
@@ -41,7 +43,8 @@ public class MarkdownReportGeneratorTests
         var result = new AnalysisResult
         {
             TargetFqn = "N.Target",
-            FanInElements = new List<FanInElement>()
+            FanInElements = new List<FanInElement>(),
+            MaxTransitiveDepth = 0
         };
 
         var generator = new MarkdownReportGenerator();
@@ -60,7 +63,8 @@ public class MarkdownReportGeneratorTests
             {
                 new("N.ClassA", ElementKind.Class, "Field type `Target`"),
                 new("N.IFoo", ElementKind.Interface, "Method return type `Target`"),
-            }
+            },
+            MaxTransitiveDepth = 1
         };
 
         var generator = new MarkdownReportGenerator();
@@ -84,7 +88,8 @@ public class MarkdownReportGeneratorTests
                 new("N.A", ElementKind.Class, "reason"),
                 new("N.B", ElementKind.Class, "reason"),
                 new("N.I", ElementKind.Interface, "reason"),
-            }
+            },
+            MaxTransitiveDepth = 1
         };
 
         var generator = new MarkdownReportGenerator();
@@ -95,12 +100,32 @@ public class MarkdownReportGeneratorTests
     }
 
     [Fact]
+    public void Generate_ContainsMaxTransitiveDepthRow()
+    {
+        var result = new AnalysisResult
+        {
+            TargetFqn = "N.Target",
+            FanInElements = new List<FanInElement>
+            {
+                new("N.A", ElementKind.Class, "reason"),
+            },
+            MaxTransitiveDepth = 4
+        };
+
+        var generator = new MarkdownReportGenerator();
+        var report = generator.Generate(result);
+
+        Assert.Contains("| **Max Transitive Depth** | **4** |", report);
+    }
+
+    [Fact]
     public void GenerateToFile_WritesFile()
     {
         var result = new AnalysisResult
         {
             TargetFqn = "N.Target",
-            FanInElements = new List<FanInElement>()
+            FanInElements = new List<FanInElement>(),
+            MaxTransitiveDepth = 0
         };
 
         var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");

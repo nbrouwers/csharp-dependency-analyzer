@@ -78,6 +78,7 @@ static void Run(string targetFqn, string filesPath, string outputPath)
         var result = analyzer.Analyze(targetFqn, graph);
 
         Console.WriteLine($"Found {result.TotalFanInCount} fan-in element(s).");
+        Console.WriteLine($"Max transitive depth: {result.MaxTransitiveDepth} layer(s).");
 
         // Phase 4: Generate report
         Console.WriteLine();

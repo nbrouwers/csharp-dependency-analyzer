@@ -56,7 +56,9 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 - **FR-4.3**: The report shall contain a **metrics overview**:
   - Total number of fan-in elements
   - Count per element kind (e.g., 5 classes, 2 interfaces, 1 enum)
+  - Maximum transitive depth (the longest chain of dependency layers from any fan-in element back to the target)
 - **FR-4.4**: The report shall be written to a file in a structured, human-readable format (Markdown).
+- **FR-4.5**: The console output shall also report the maximum transitive depth alongside the fan-in element count.
 
 ## 4. Non-Functional Requirements
 

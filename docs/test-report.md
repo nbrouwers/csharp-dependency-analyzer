@@ -4,7 +4,7 @@
 > **Last updated:** 2026-04-14  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 155  
+> **Total test cases:** 166  
 > **Pass rate:** 100 %
 
 ---
@@ -43,8 +43,8 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 |---|-----------|------:|-------|-------------|
 | 1 | `RoslynWorkspaceBuilderTests.cs` | 5 | Unit | FR-1, FR-2 |
 | 2 | `DependencyGraphBuilderTests.cs` | 15 | Unit | FR-3.1, FR-3.2 |
-| 3 | `TransitiveFanInAnalyzerTests.cs` | 10 | Unit | FR-3.3, FR-3.4, FR-4.3 |
-| 4 | `MarkdownReportGeneratorTests.cs` | 6 | Unit | FR-4.1–FR-4.4 |
+| 3 | `TransitiveFanInAnalyzerTests.cs` | 15 | Unit | FR-3.3, FR-3.4, FR-4.3, FR-4.5 |
+| 4 | `MarkdownReportGeneratorTests.cs` | 7 | Unit | FR-4.1–FR-4.5 |
 | 5 | `EndToEndTests.cs` | 4 | Integration | FR-1–FR-4 |
 | 6 | `ComprehensiveDependencyTests.cs` | 37 | Unit | FR-3.2 |
 | 7 | `GapProbeTests.cs` | 16 | Unit | FR-3.2 |
@@ -52,7 +52,7 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 9 | `Round4FinalSweepTests.cs` | 19 | Integration | FR-3.2 |
 | 10 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
 | 11 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
-| | **Total** | **155** | | |
+| | **Total** | **166** | | |
 
 ---
 
@@ -108,8 +108,13 @@ Tests BFS transitive closure, justification chains, and metrics. Traces to **FR-
 | FA-08 | `Justification_ContainsReasonForDirectFanIn` | Direct fan-in justification text is meaningful. | Unit |
 | FA-09 | `Justification_ContainsTransitiveChain` | Transitive justification shows the dependency chain. | Unit |
 | FA-10 | `Metrics_CorrectCountPerKind` | Per-kind metrics match actual element counts. | Unit |
+| FA-11 | `MaxTransitiveDepth_DirectOnly_IsOne` | Direct-only fan-in produces depth 1. | Unit |
+| FA-12 | `MaxTransitiveDepth_TwoLevels_IsTwo` | Two-level chain produces depth 2. | Unit |
+| FA-13 | `MaxTransitiveDepth_ThreeLevels_IsThree` | Three-level chain produces depth 3. | Unit |
+| FA-14 | `MaxTransitiveDepth_NoFanIn_IsZero` | No fan-in produces depth 0. | Unit |
+| FA-15 | `MaxTransitiveDepth_Diamond_IsTwo` | Diamond dependency produces depth 2. | Unit |
 
-### 3.4 MarkdownReportGeneratorTests (6 tests)
+### 3.4 MarkdownReportGeneratorTests (7 tests)
 
 Tests the Markdown report output. Traces to **FR-4.1**–**FR-4.4**.
 
@@ -121,6 +126,7 @@ Tests the Markdown report output. Traces to **FR-4.1**–**FR-4.4**.
 | RG-04 | `Generate_WithElements_ContainsTableRows` | Fan-in elements render as table rows. | Unit |
 | RG-05 | `Generate_ContainsMetricsTable` | Metrics section is present with per-kind counts. | Unit |
 | RG-06 | `GenerateToFile_WritesFile` | Report is written to the specified file path. | Unit |
+| RG-07 | `Generate_ContainsMaxTransitiveDepthRow` | Max Transitive Depth row appears in metrics table. | Unit |
 
 ### 3.5 EndToEndTests (4 tests)
 
@@ -303,7 +309,8 @@ Validates the GitHub Actions CI workflow configuration. Traces to **NFR-5.1**–
 | **FR-3.3**: Transitive closure | FA-01–03, FA-06, R3-31–33, E2E-01 | Full |
 | **FR-3.4**: Target exclusion | FA-05, E2E-01 | Full |
 | **FR-4.1–4.2**: Report content | RG-01–05 | Full |
-| **FR-4.3**: Metrics overview | FA-10, RG-05 | Full |
+| **FR-4.3**: Metrics overview | FA-10, FA-11–15, RG-05, RG-07 | Full |
+| **FR-4.5**: Console max depth | FA-11–15 | Full |
 | **FR-4.4**: Markdown file output | RG-06 | Full |
 | **NFR-4.1–4.3**: Portable executable | PE-01–03 | Full |
 | **NFR-5.1–5.3**: CI pipeline | CI-01–07 | Full |
@@ -357,7 +364,7 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 155, failed: 0, succeeded: 155, skipped: 0
+Test summary: total: 166, failed: 0, succeeded: 166, skipped: 0
 Duration: ~9s
 ```
 
@@ -374,5 +381,6 @@ Tests were developed across four iterative cross-check rounds against the C# lan
 | 3 (Spec Audit) | 33 | 6 | 6 | 126 |
 | 4 (Final Sweep) | 19 | 0 | 0 | 145 |
 | Post-feature additions | 10 | — | — | 155 |
+| Max transitive depth | 6 | — | — | 166 |
 
 Round 4 finding zero gaps confirmed convergence: all mainstream C# constructs are covered.

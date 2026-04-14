@@ -59,6 +59,7 @@ public sealed class MarkdownReportGenerator
         }
 
         sb.AppendLine($"| **Total** | **{result.TotalFanInCount}** |");
+        sb.AppendLine($"| **Max Transitive Depth** | **{result.MaxTransitiveDepth}** |");
         sb.AppendLine();
 
         return sb.ToString();

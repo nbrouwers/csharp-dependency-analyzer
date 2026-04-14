@@ -4,6 +4,7 @@ public sealed class AnalysisResult
 {
     public required string TargetFqn { get; init; }
     public required IReadOnlyList<FanInElement> FanInElements { get; init; }
+    public required int MaxTransitiveDepth { get; init; }
 
     public IReadOnlyDictionary<ElementKind, int> MetricsByKind =>
         FanInElements
