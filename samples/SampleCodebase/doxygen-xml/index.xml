@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygenindex version="1.9.1" xml:lang="en-US">
+  <compound refid="classSampleApp_1_1Attributes_1_1OrderAttribute" kind="class">
+    <name>SampleApp::Attributes::OrderAttribute</name>
+  </compound>
+  <compound refid="interfaceSampleApp_1_1Core_1_1IOrderRepository" kind="interface">
+    <name>SampleApp::Core::IOrderRepository</name>
+  </compound>
+  <compound refid="interfaceSampleApp_1_1Core_1_1IRepository_3_0T_3_1" kind="interface">
+    <name>SampleApp::Core::IRepository&lt;T&gt;</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Core_1_1OrderCreatedHandler" kind="class">
+    <name>SampleApp::Core::OrderCreatedHandler</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Core_1_1OrderRecord" kind="class">
+    <name>SampleApp::Core::OrderRecord</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Core_1_1OrderService" kind="class">
+    <name>SampleApp::Core::OrderService</name>
+  </compound>
+  <compound refid="enumSampleApp_1_1Core_1_1OrderStatus" kind="enum">
+    <name>SampleApp::Core::OrderStatus</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Core_1_1OrderValidator" kind="class">
+    <name>SampleApp::Core::OrderValidator</name>
+  </compound>
+  <compound refid="structSampleApp_1_1Data_1_1OrderEntity" kind="struct">
+    <name>SampleApp::Data::OrderEntity</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1AdminController" kind="class">
+    <name>SampleApp::Services::AdminController</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1NotificationService" kind="class">
+    <name>SampleApp::Services::NotificationService</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1OrderController" kind="class">
+    <name>SampleApp::Services::OrderController</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1OrderFactory" kind="class">
+    <name>SampleApp::Services::OrderFactory</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1OrderInspector" kind="class">
+    <name>SampleApp::Services::OrderInspector</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1OrderLogger" kind="class">
+    <name>SampleApp::Services::OrderLogger</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Services_1_1OrderPipeline" kind="class">
+    <name>SampleApp::Services::OrderPipeline</name>
+  </compound>
+  <compound refid="classSampleApp_1_1Utils_1_1Helpers" kind="class">
+    <name>SampleApp::Utils::Helpers</name>
+  </compound>
+  <compound refid="namespaceSampleApp" kind="namespace">
+    <name>SampleApp</name>
+  </compound>
+  <compound refid="namespaceSampleApp_1_1Attributes" kind="namespace">
+    <name>SampleApp::Attributes</name>
+  </compound>
+  <compound refid="namespaceSampleApp_1_1Core" kind="namespace">
+    <name>SampleApp::Core</name>
+  </compound>
+  <compound refid="namespaceSampleApp_1_1Data" kind="namespace">
+    <name>SampleApp::Data</name>
+  </compound>
+  <compound refid="namespaceSampleApp_1_1Services" kind="namespace">
+    <name>SampleApp::Services</name>
+  </compound>
+  <compound refid="namespaceSampleApp_1_1Utils" kind="namespace">
+    <name>SampleApp::Utils</name>
+  </compound>
+</doxygenindex>

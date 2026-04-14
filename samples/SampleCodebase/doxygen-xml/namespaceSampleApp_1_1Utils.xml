@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceSampleApp_1_1Utils" kind="namespace" language="C#">
+    <compoundname>SampleApp::Utils</compoundname>
+    <innerclass refid="classSampleApp_1_1Utils_1_1Helpers" prot="public">SampleApp::Utils::Helpers</innerclass>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

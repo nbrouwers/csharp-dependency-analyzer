@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceSampleApp_1_1Data" kind="namespace" language="C#">
+    <compoundname>SampleApp::Data</compoundname>
+    <innerclass refid="structSampleApp_1_1Data_1_1OrderEntity" prot="public">SampleApp::Data::OrderEntity</innerclass>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

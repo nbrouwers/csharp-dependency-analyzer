@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="classSampleApp_1_1Services_1_1OrderController" kind="class" language="C#">
+    <compoundname>SampleApp::Services::OrderController</compoundname>
+    <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classSampleApp_1_1Services_1_1OrderController_1dep_0">
+        <name>Field type</name>
+        <briefdescription>
+          <para>Dependency on SampleApp::Core::OrderService</para>
+        </briefdescription>
+        <references refid="classSampleApp_1_1Core_1_1OrderService" compoundref="classSampleApp_1_1Core_1_1OrderService">SampleApp::Core::OrderService</references>
+      </memberdef>
+      <memberdef kind="variable" id="classSampleApp_1_1Services_1_1OrderController_1dep_1">
+        <name>Object creation (new)</name>
+        <briefdescription>
+          <para>Dependency on SampleApp::Core::OrderService</para>
+        </briefdescription>
+        <references refid="classSampleApp_1_1Core_1_1OrderService" compoundref="classSampleApp_1_1Core_1_1OrderService">SampleApp::Core::OrderService</references>
+      </memberdef>
+    </sectiondef>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

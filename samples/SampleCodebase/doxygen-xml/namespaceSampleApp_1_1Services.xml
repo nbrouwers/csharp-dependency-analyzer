@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceSampleApp_1_1Services" kind="namespace" language="C#">
+    <compoundname>SampleApp::Services</compoundname>
+    <innerclass refid="classSampleApp_1_1Services_1_1AdminController" prot="public">SampleApp::Services::AdminController</innerclass>
+    <innerclass refid="classSampleApp_1_1Services_1_1NotificationService" prot="public">SampleApp::Services::NotificationService</innerclass>
+    <innerclass refid="classSampleApp_1_1Services_1_1OrderController" prot="public">SampleApp::Services::OrderController</innerclass>
+    <innerclass refid="classSampleApp_1_1Services_1_1OrderFactory" prot="public">SampleApp::Services::OrderFactory</innerclass>
+    <innerclass refid="classSampleApp_1_1Services_1_1OrderInspector" prot="public">SampleApp::Services::OrderInspector</innerclass>
+    <innerclass refid="classSampleApp_1_1Services_1_1OrderLogger" prot="public">SampleApp::Services::OrderLogger</innerclass>
+    <innerclass refid="classSampleApp_1_1Services_1_1OrderPipeline" prot="public">SampleApp::Services::OrderPipeline</innerclass>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

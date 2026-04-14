@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="structSampleApp_1_1Data_1_1OrderEntity" kind="struct" language="C#">
+    <compoundname>SampleApp::Data::OrderEntity</compoundname>
+    <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSampleApp_1_1Data_1_1OrderEntity_1dep_0">
+        <name>typeof() expression</name>
+        <briefdescription>
+          <para>Dependency on SampleApp::Core::OrderService</para>
+        </briefdescription>
+        <references refid="classSampleApp_1_1Core_1_1OrderService" compoundref="classSampleApp_1_1Core_1_1OrderService">SampleApp::Core::OrderService</references>
+      </memberdef>
+    </sectiondef>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

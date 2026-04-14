@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="interfaceSampleApp_1_1Core_1_1IRepository_3_0T_3_1" kind="interface" language="C#">
+    <compoundname>SampleApp::Core::IRepository&lt;T&gt;</compoundname>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

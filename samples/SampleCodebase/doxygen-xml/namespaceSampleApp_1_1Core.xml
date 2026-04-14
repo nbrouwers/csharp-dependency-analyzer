@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceSampleApp_1_1Core" kind="namespace" language="C#">
+    <compoundname>SampleApp::Core</compoundname>
+    <innerclass refid="interfaceSampleApp_1_1Core_1_1IOrderRepository" prot="public">SampleApp::Core::IOrderRepository</innerclass>
+    <innerclass refid="interfaceSampleApp_1_1Core_1_1IRepository_3_0T_3_1" prot="public">SampleApp::Core::IRepository&lt;T&gt;</innerclass>
+    <innerclass refid="classSampleApp_1_1Core_1_1OrderCreatedHandler" prot="public">SampleApp::Core::OrderCreatedHandler</innerclass>
+    <innerclass refid="classSampleApp_1_1Core_1_1OrderRecord" prot="public">SampleApp::Core::OrderRecord</innerclass>
+    <innerclass refid="classSampleApp_1_1Core_1_1OrderService" prot="public">SampleApp::Core::OrderService</innerclass>
+    <innerclass refid="enumSampleApp_1_1Core_1_1OrderStatus" prot="public">SampleApp::Core::OrderStatus</innerclass>
+    <innerclass refid="classSampleApp_1_1Core_1_1OrderValidator" prot="public">SampleApp::Core::OrderValidator</innerclass>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

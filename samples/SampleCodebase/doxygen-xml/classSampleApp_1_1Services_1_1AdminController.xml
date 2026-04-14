@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doxygen version="1.9.1" xml:lang="en-US">
+  <compounddef id="classSampleApp_1_1Services_1_1AdminController" kind="class" language="C#">
+    <compoundname>SampleApp::Services::AdminController</compoundname>
+    <basecompoundref refid="classSampleApp_1_1Services_1_1OrderController" prot="public" virt="non-virtual">SampleApp::Services::OrderController</basecompoundref>
+    <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classSampleApp_1_1Services_1_1AdminController_1dep_0">
+        <name>Static method call (using static)</name>
+        <briefdescription>
+          <para>Dependency on SampleApp::Services::OrderController</para>
+        </briefdescription>
+        <references refid="classSampleApp_1_1Services_1_1OrderController" compoundref="classSampleApp_1_1Services_1_1OrderController">SampleApp::Services::OrderController</references>
+      </memberdef>
+    </sectiondef>
+    <location file="" line="0" column="0" />
+  </compounddef>
+</doxygen>

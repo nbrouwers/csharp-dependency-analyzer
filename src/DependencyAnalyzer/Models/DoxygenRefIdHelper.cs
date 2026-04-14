@@ -94,7 +94,15 @@ public static class DoxygenRefIdHelper
     /// <summary>
     /// Encodes a fully qualified name for use inside a Doxygen <c>refid</c>:
     /// both <c>.</c> and <c>::</c> are replaced by <c>_1_1</c>.
+    /// Generic type arguments (<c>&lt;</c>, <c>&gt;</c>, <c>,</c>, space) are
+    /// encoded using Doxygen's standard template-argument encoding so the result
+    /// is valid as a file name on all platforms.
     /// </summary>
     private static string EncodeFqn(string fqn) =>
-        fqn.Replace("::", "_1_1").Replace(".", "_1_1");
+        fqn.Replace("::", "_1_1")
+           .Replace(".", "_1_1")
+           .Replace("<", "_3_0")
+           .Replace(">", "_3_1")
+           .Replace(",", "_00")
+           .Replace(" ", "_01");
 }
