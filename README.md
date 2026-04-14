@@ -2,17 +2,30 @@
 
 [![CI](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml)
 
-A Roslyn-based static analysis tool that computes the **transitive fan-in** of a specified C# class. Given a target class and a set of source files, it identifies every type (class, interface, struct, enum, record, delegate) that directly or transitively depends on the target — producing a Markdown report with justifications and metrics.
+A Roslyn-based static analysis tool with two primary functions:
 
-This is useful when planning to move a class to a separate project or assembly: the fan-in set tells you exactly which types must move along with it to avoid breaking compilation.
+**Fan-in analysis** — Given a target class and a set of source files, identifies every type (class, interface, struct, enum, record, delegate) that directly or transitively depends on the target. Produces a Markdown report with justifications and metrics. Useful when planning to move a class to a separate project or assembly: the fan-in set tells you exactly which types must move along with it to avoid breaking compilation.
+
+**Doxygen XML export** — Exports the complete type dependency graph of a codebase to Doxygen-conformant XML files. Each type becomes a compound XML file with structured edges for inheritance, interface implementation, and usage relationships. The output is ready for downstream tooling such as ingestion into a Neo4j graph database.
 
 ## How It Works
 
+Both subcommands share the same first two steps:
+
 1. **Roslyn compilation** — All listed source files are parsed and compiled in-memory using the Roslyn Compiler Platform. No `.csproj` or `.sln` is needed; the tool works directly on raw `.cs` files.
 2. **Dependency graph extraction** — A `CSharpSyntaxWalker` visits every syntax tree and records type-to-type dependency edges (inheritance, field types, method signatures, object creation, casts, pattern matching, attributes, generics, and ~40 other C# constructs).
-3. **Transitive closure** — A BFS on the reversed adjacency list computes the full set of types that depend on the target, di
-rectly or transitively.
-4. **Report generation** — Results are written to a Markdown file with a fan-in table and per-kind metrics.
+
+From there, each subcommand follows its own path:
+
+**`analyze` (fan-in):**
+
+3. **Transitive closure** — A BFS on the reversed adjacency list computes the full set of types that depend on the target, directly or transitively.
+4. **Report generation** — Results are written to a Markdown file with a fan-in table, per-kind metrics, and a Mermaid dependency diagram.
+
+**`export` (Doxygen XML):**
+
+3. **Graph serialisation** — The full dependency graph is serialised to Doxygen-conformant XML: one compound file per type, one compound file per namespace, and an `index.xml` catalogue. Inheritance and interface-implementation edges become `<basecompoundref>` elements; usage edges become `<memberdef>/<references>` elements.
+4. **Output** — Files are written to the specified output directory, ready for ingestion into downstream tooling such as Neo4j.
 
 ## Prerequisites
 
@@ -169,6 +182,64 @@ Generated: 2026-04-14 10:30:00 UTC
 | 1 | User error (target class not found, file list missing, invalid input) |
 | 2 | Unexpected internal error |
 
+## Doxygen XML Schema Mapping
+
+The `export` subcommand serialises the internal `DependencyGraph` model to Doxygen-conformant XML (compound schema version 1.9.1). The table below documents the complete mapping.
+
+### File layout
+
+| What is generated | Filename |
+|---|---|
+| One compound file per discovered type | `{refid}.xml` |
+| One compound file per unique namespace prefix | `namespace{encoded-ns}.xml` |
+| Master catalogue of all compounds | `index.xml` |
+
+### `ElementKind` → Doxygen `kind` attribute
+
+| Internal `ElementKind` | `<compounddef kind="…">` |
+|---|---|
+| `Class`, `Record`, `Delegate` | `class` |
+| `Interface` | `interface` |
+| `Struct` | `struct` |
+| `Enum` | `enum` |
+| *(namespace compounds)* | `namespace` |
+
+### Fully qualified name → `refid`
+
+Each `refid` is `{kindPrefix}{encodedFqn}`, where the kind prefix matches the table above (`class`, `interface`, `struct`, `enum`, `namespace`) and the FQN is encoded as follows:
+
+| Character sequence | Encoded form |
+|---|---|
+| `.` or `::` | `_1_1` |
+| `<` | `_3_0` |
+| `>` | `_3_1` |
+| `,` | `_00` |
+| ` ` (space) | `_01` |
+
+Example: `SampleApp.Core.IRepository<T>` + `Interface` → `interfaceSampleApp_1_1Core_1_1IRepository_3_0T_3_1`
+
+### Dependency edges → XML elements
+
+Each `TypeDependency` (edge) carries a `DependencyReason` string. The exporter classifies it into one of three `DoxygenEdgeKind` values and maps it to the corresponding XML structure:
+
+| `DependencyReason` | `DoxygenEdgeKind` | XML output |
+|---|---|---|
+| `"Inherits from"` | `Inheritance` | `<basecompoundref prot="public" virt="non-virtual" refid="…">` |
+| `"Implements interface"` | `InterfaceImplementation` | `<basecompoundref prot="public" virt="virtual" refid="…">` |
+| Any other reason | `Usage` | `<sectiondef kind="public-attrib">` containing a `<memberdef kind="variable">` whose `<name>` is the reason string, with a `<references refid="…">` child pointing to the target type |
+
+### Namespace membership
+
+Each namespace compound lists the types it contains as `<innerclass refid="…" prot="public">` child elements inside its `<compounddef>`.
+
+### Location stub
+
+Because `DependencyGraph` does not store source-file positions, every `<compounddef>` includes a stub `<location file="" line="0" column="0"/>` to satisfy the schema.
+
+### Index file
+
+`index.xml` is a `<doxygenindex version="1.9.1">` document containing one `<compound refid="…" kind="…"><name>…</name></compound>` entry per type and per namespace compound.
+
 ## Using on a Different Codebase
 
 To analyze a codebase in a completely separate repository or environment:
@@ -184,12 +255,17 @@ No .NET SDK needed on the target machine.
    Get-ChildItem -Recurse -Filter *.cs C:\path\to\other-repo\src | ForEach-Object { $_.FullName } | Set-Content -Encoding UTF8 filelist.txt
    ```
 
-3. **Run the tool:**
+3. **Run the fan-in analyzer:**
    ```powershell
    .\DependencyAnalyzer.exe analyze --target "OtherRepo.Domain.SomeService" --files filelist.txt --output report.md
    ```
 
 4. **Read** `report.md` — it contains the full transitive fan-in set.
+
+   Or, **export the full dependency graph to Doxygen XML:**
+   ```powershell
+   .\DependencyAnalyzer.exe export --files filelist.txt --format doxygen --output-dir .\doxygen-xml
+   ```
 
 ### Option B: From Source
 
@@ -208,7 +284,7 @@ Requires .NET 8.0 SDK.
    find /path/to/other-repo/src -name '*.cs' > /path/to/other-repo/filelist.txt
    ```
 
-3. **Run the tool** with the fully qualified name of the class you care about:
+3. **Run the fan-in analyzer** with the fully qualified name of the class you care about:
    ```bash
    dotnet run --project src/DependencyAnalyzer -- analyze \
      --target "OtherRepo.Domain.SomeService" \
@@ -217,6 +293,14 @@ Requires .NET 8.0 SDK.
    ```
 
 4. **Read** `fan-in-report.md` — it contains the full transitive fan-in set.
+
+   Or, **export the full dependency graph to Doxygen XML:**
+   ```bash
+   dotnet run --project src/DependencyAnalyzer -- export \
+     --files      /path/to/other-repo/filelist.txt \
+     --format     doxygen \
+     --output-dir /path/to/other-repo/doxygen-xml
+   ```
 
 ### Important Notes for External Codebases
 
@@ -230,7 +314,9 @@ Requires .NET 8.0 SDK.
 
 ## Running the Sample
 
-A self-contained sample codebase is included under `samples/SampleCodebase/` with a pre-built `filelist.txt`:
+A self-contained sample codebase is included under `samples/SampleCodebase/` with a pre-built `filelist.txt`.
+
+### Fan-in analysis
 
 ```bash
 dotnet run --project src/DependencyAnalyzer -- analyze \
@@ -240,6 +326,17 @@ dotnet run --project src/DependencyAnalyzer -- analyze \
 ```
 
 This produces a report identifying 11 fan-in elements (7 classes, 1 interface, 1 struct, 1 record, 1 delegate). See `samples/SampleCodebase/README.md` for the expected results.
+
+### Doxygen XML export
+
+```bash
+dotnet run --project src/DependencyAnalyzer -- export \
+  --files      samples/SampleCodebase/filelist.txt \
+  --format     doxygen \
+  --output-dir samples/SampleCodebase/doxygen-xml
+```
+
+This discovers 17 types and 24 dependency edges, writing 24 XML files to `samples/SampleCodebase/doxygen-xml/`. The committed output is already present in that directory and can be used as a reference or loaded directly into Neo4j.
 
 ## Versioning
 
