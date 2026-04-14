@@ -80,30 +80,53 @@ src/Services/OrderPipeline.cs
 
 ### 2. Run the analyzer
 
+The tool exposes two subcommands:
+
+#### `analyze` — fan-in analysis (produces a Markdown report)
+
 ```bash
-dotnet run --project src/DependencyAnalyzer -- \
+dotnet run --project src/DependencyAnalyzer -- analyze \
   --target "MyCompany.Core.Services.OrderService" \
   --files  filelist.txt \
   --output report.md
 ```
 
-Or, if you built/published the executable directly:
+Or, using the published executable:
 
 ```bash
-./DependencyAnalyzer \
+./DependencyAnalyzer analyze \
   --target "MyCompany.Core.Services.OrderService" \
   --files  filelist.txt \
   --output report.md
 ```
 
-### CLI Options
+#### `export` — export full dependency graph to Doxygen XML (for Neo4j ingestion)
+
+```bash
+./DependencyAnalyzer export \
+  --files      filelist.txt \
+  --format     doxygen \
+  --output-dir ./doxygen-xml/
+```
+
+### CLI Reference
+
+#### `analyze` options
 
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
 | `--target` | Yes | — | Fully qualified name of the target class (e.g. `MyCompany.Core.OrderService`). |
 | `--files` | Yes | — | Path to a text file containing one source file path per line. |
 | `--output` | No | `dependency-report.md` | Path for the generated Markdown report. |
-| `--version` | No | — | Print the tool version and exit. |
+| `--mode` | No | `fan-in` | Analysis direction. Currently only `fan-in` is implemented. |
+
+#### `export` options
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--files` | Yes | Path to a text file containing one source file path per line. |
+| `--format` | Yes | Export format. Currently only `doxygen` is supported. |
+| `--output-dir` | Yes | Directory to write the exported XML files into (created if absent). |
 
 ### 3. Read the report
 
@@ -163,7 +186,7 @@ No .NET SDK needed on the target machine.
 
 3. **Run the tool:**
    ```powershell
-   .\DependencyAnalyzer.exe --target "OtherRepo.Domain.SomeService" --files filelist.txt --output report.md
+   .\DependencyAnalyzer.exe analyze --target "OtherRepo.Domain.SomeService" --files filelist.txt --output report.md
    ```
 
 4. **Read** `report.md` — it contains the full transitive fan-in set.
@@ -187,7 +210,7 @@ Requires .NET 8.0 SDK.
 
 3. **Run the tool** with the fully qualified name of the class you care about:
    ```bash
-   dotnet run --project src/DependencyAnalyzer -- \
+   dotnet run --project src/DependencyAnalyzer -- analyze \
      --target "OtherRepo.Domain.SomeService" \
      --files  /path/to/other-repo/filelist.txt \
      --output /path/to/other-repo/fan-in-report.md
@@ -210,7 +233,7 @@ Requires .NET 8.0 SDK.
 A self-contained sample codebase is included under `samples/SampleCodebase/` with a pre-built `filelist.txt`:
 
 ```bash
-dotnet run --project src/DependencyAnalyzer -- \
+dotnet run --project src/DependencyAnalyzer -- analyze \
   --target "SampleApp.Core.OrderService" \
   --files  samples/SampleCodebase/filelist.txt \
   --output samples/SampleCodebase/report.md
@@ -232,12 +255,13 @@ This project follows [Semantic Versioning 2.0.0](https://semver.org/). The versi
 dotnet test
 ```
 
-The test suite contains 160 tests covering:
+The test suite contains 208 tests covering:
 
 - Roslyn workspace building and target resolution
 - Individual dependency type detection (inheritance, fields, generics, patterns, etc.)
 - Transitive fan-in computation (direct, transitive, circular, diamond dependencies)
 - Markdown report generation
+- Doxygen XML export (`DoxygenXmlExporter`, `DoxygenRefIdHelper`, edge classification)
 - End-to-end pipeline scenarios
 - Comprehensive C# construct coverage verified across 4 rounds of cross-checking against the language specification
 - Portable executable build verification (single-file output, help, sample analysis)
@@ -270,14 +294,17 @@ csharp-dependency-analyzer/
 │   │   ├── TypeDependency.cs               # Edge record (source, target, reason)
 │   │   ├── FanInElement.cs                 # Result item with justification
 │   │   ├── AnalysisResult.cs               # Full analysis output
-│   │   └── DependencyGraph.cs              # Adjacency list + element kinds
+│   │   ├── DependencyGraph.cs              # Adjacency list + element kinds
+│   │   ├── DoxygenEdgeKind.cs              # Classifies edges for Doxygen export
+│   │   └── DoxygenRefIdHelper.cs           # refid generation, kind/name conversion
 │   ├── Analysis/
 │   │   ├── RoslynWorkspaceBuilder.cs       # Builds CSharpCompilation from files
 │   │   ├── DependencyGraphBuilder.cs       # Discovers types, runs visitor
 │   │   ├── DependencyVisitor.cs            # CSharpSyntaxWalker (~45 overrides)
 │   │   └── TransitiveFanInAnalyzer.cs      # BFS transitive closure
 │   └── Reporting/
-│       └── MarkdownReportGenerator.cs      # Markdown report output
+│       ├── MarkdownReportGenerator.cs      # Markdown report output
+│       └── DoxygenXmlExporter.cs           # Doxygen XML export (for Neo4j ingestion)
 ├── tests/DependencyAnalyzer.Tests/
 │   ├── TestHelper.cs
 │   ├── RoslynWorkspaceBuilderTests.cs
@@ -289,6 +316,7 @@ csharp-dependency-analyzer/
 │   ├── GapProbeTests.cs
 │   ├── Round3AuditProbeTests.cs
 │   ├── Round4FinalSweepTests.cs
+│   ├── DoxygenXmlExporterTests.cs          # Tests for Doxygen export (DX-01 – DX-23)
 │   ├── PortableExeTests.cs
 │   ├── CiWorkflowTests.cs
 │   ├── VersionTests.cs

@@ -16,6 +16,23 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 
 ## 3. Functional Requirements
 
+### FR-5: Subcommand-Based CLI
+
+- **FR-5.1**: The tool shall expose its functionality through named subcommands. The current subcommands are `analyze` and `export`.
+- **FR-5.2**: The `analyze` subcommand shall compute the dependency analysis for a specified target class and produce a structured report. It shall support a `--mode` option (`fan-in` by default) to select the analysis direction; unknown mode values shall produce a clear error.
+- **FR-5.3**: The `export` subcommand shall extract the full dependency graph of the source scope and write it to an external format. It shall not require a target class. It shall support a `--format` option; currently only `doxygen` is supported.
+- **FR-5.4**: Both subcommands shall share the same `--files` file-list mechanism (FR-2.1).
+
+### FR-6: Doxygen XML Export
+
+- **FR-6.1**: The `export --format doxygen` command shall produce a directory of UTF-8 XML files whose structure conforms to the Doxygen compound schema (compound.xsd version 1.9.1).
+- **FR-6.2**: Each in-scope type shall be represented as a `<compounddef>` element in its own file, named `{refid}.xml`. The `refid` shall be derived deterministically from the type's fully qualified name and its `ElementKind`.
+- **FR-6.3**: Inheritance and interface-implementation edges shall be emitted as `<basecompoundref>` elements on the source compound.
+- **FR-6.4**: All other dependency edges (field type, method parameter, object creation, etc.) shall be emitted as `<memberdef kind="variable">` elements within a `<sectiondef>`, each carrying a `<references>` child pointing to the target compound.
+- **FR-6.5**: A top-level `index.xml` shall list every exported compound with its `refid`, `kind`, and `name`.
+- **FR-6.6**: A `<compounddef kind="namespace">` shall be generated for every unique namespace prefix found in the source scope.
+- **FR-6.7**: Where source location data is unavailable (the graph does not store file paths or line numbers), the tool shall emit a stub `<location file="" line="0" column="0"/>` element.
+
 ### FR-1: Specify Target Class
 
 - **FR-1.1**: The user shall provide the fully qualified name (FQN) of the target class (e.g. `MyCompany.Core.Services.OrderService`).
@@ -101,15 +118,24 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 
 ## 5. Input / Output Specification
 
-### 5.1 Input
+### 5.1 Input — `analyze` subcommand
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `--target` | Yes | — | Fully qualified name of the target class. |
+| `--files` | Yes | — | Path to a text file containing one source file path per line. |
+| `--output` | No | `dependency-report.md` | Path for the output report file. |
+| `--mode` | No | `fan-in` | Analysis direction. Currently only `fan-in` is implemented. `fan-out` and `combined` are reserved. |
+
+### 5.2 Input — `export` subcommand
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `--target` | Yes | Fully qualified name of the target class. |
 | `--files` | Yes | Path to a text file containing one source file path per line. |
-| `--output` | No | Path for the output report file. Default: `dependency-report.md` in the current directory. |
+| `--format` | Yes | Export format. Currently only `doxygen` is supported. |
+| `--output-dir` | Yes | Directory to write the exported files into. Created if absent. |
 
-### 5.2 Output
+### 5.3 Output — `analyze` subcommand
 
 A Markdown report file with the following structure:
 
@@ -146,6 +172,22 @@ graph LR
     classDef target fill:#f96,stroke:#333,stroke-width:2px
 ` ` `
 ```
+
+### 5.4 Output — `export --format doxygen` subcommand
+
+A directory of UTF-8 XML files conforming to the Doxygen compound schema:
+
+```
+{output-dir}/
+  index.xml                                   ← lists all compounds
+  class{Namespace}_1_1{TypeName}.xml          ← one file per type
+  namespace{Namespace}.xml                    ← one file per namespace
+```
+
+Each compound file contains a `<compounddef>` with:
+- Inheritance/interface edges as `<basecompoundref>` elements
+- All other dependency edges as `<memberdef kind="variable">` with `<references>` children
+- A stub `<location file="" line="0" column="0"/>` element
 
 ## 6. Validation Requirements
 

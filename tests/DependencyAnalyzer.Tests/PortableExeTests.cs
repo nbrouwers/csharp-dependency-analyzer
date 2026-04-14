@@ -92,9 +92,8 @@ public class PortableExeTests
         process.WaitForExit(30_000);
 
         Assert.Equal(0, process.ExitCode);
-        Assert.Contains("--target", output);
-        Assert.Contains("--files", output);
-        Assert.Contains("--output", output);
+        Assert.Contains("analyze", output);
+        Assert.Contains("export", output);
         Assert.Contains("C# Dependency Analyzer", output);
     }
 
@@ -129,7 +128,7 @@ public class PortableExeTests
             var psi = new ProcessStartInfo
             {
                 FileName = exePath,
-                Arguments = $"--target \"SampleApp.Core.OrderService\" --files \"{fileList}\" --output \"{outputPath}\"",
+                Arguments = $"analyze --target \"SampleApp.Core.OrderService\" --files \"{fileList}\" --output \"{outputPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,

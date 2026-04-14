@@ -4,8 +4,8 @@
 > **Last updated:** 2026-04-14  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 179  
-> **Pass rate:** 100 %
+> **Total test cases:** 208  
+> **Pass rate:** 97.6 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
 
 ---
 
@@ -50,10 +50,11 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 7 | `GapProbeTests.cs` | 16 | Unit | FR-3.2 |
 | 8 | `Round3AuditProbeTests.cs` | 33 | Unit | FR-3.2 |
 | 9 | `Round4FinalSweepTests.cs` | 19 | Integration | FR-3.2 |
-| 10 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
-| 11 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
-| 12 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
-| | **Total** | **179** | | |
+| 10 | `DoxygenXmlExporterTests.cs` | 29 | Unit/Integration | FR-5.3, FR-6.1–FR-6.7 |
+| 11 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
+| 12 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
+| 13 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
+| | **Total** | **208** | | |
 
 ---
 
@@ -281,7 +282,43 @@ Cross-check round 4 (convergence). All passed without code changes, confirming n
 | R4-18 | `Sweep_InterfaceDefaultMethod` | `Target Create() => null;` in interface | Integration |
 | R4-19 | `Sweep_CovariantReturn` | `override Target Create()` covariant return | Integration |
 
-### 3.10 PortableExeTests (3 tests)
+### 3.10 DoxygenXmlExporterTests (29 tests)
+
+Tests for Doxygen XML export, `DoxygenRefIdHelper`, and `DoxygenEdgeKind` edge classification. Traces to **FR-5.3** and **FR-6.1**–**FR-6.7**.
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| DX-01 | `Export_CreatesOutputDirectory` | Directory is created when it does not exist. | Unit |
+| DX-02 | `Export_CreatesIndexXml` | `index.xml` is present after export. | Unit |
+| DX-03 | `Export_IndexXml_ContainsOneEntryPerType` | `index.xml` has a `<compound>` for every type in the graph. | Unit |
+| DX-04 | `Export_CreatesOneXmlFilePerType` | One `{refid}.xml` file per type in `ElementKinds`. | Unit |
+| DX-05 | `ToRefId_ProducesExpectedPrefix(Class, …)` | Class produces `class` prefix in refid. | Unit |
+| DX-06 | `ToRefId_ProducesExpectedPrefix(Interface, …)` | Interface produces `interface` prefix. | Unit |
+| DX-07 | `ToRefId_ProducesExpectedPrefix(Struct, …)` | Struct produces `struct` prefix. | Unit |
+| DX-08 | `ToRefId_ProducesExpectedPrefix(Enum, …)` | Enum produces `enum` prefix. | Unit |
+| DX-09 | `ToRefId_ProducesExpectedPrefix(Record, …)` | Record exported with `class` prefix. | Unit |
+| DX-10 | `ToRefId_ProducesExpectedPrefix(Delegate, …)` | Delegate exported with `class` prefix. | Unit |
+| DX-11 | `CompoundXml_ContainsCompoundName` | `<compoundname>` uses `::` separators. | Unit |
+| DX-12 | `CompoundXml_InheritanceEdge_EmitsBaseCompoundRef_NonVirtual` | Inheritance → `<basecompoundref virt="non-virtual">`. | Unit |
+| DX-13 | `CompoundXml_InterfaceEdge_EmitsBaseCompoundRef_Virtual` | Interface implementation → `<basecompoundref virt="virtual">`. | Unit |
+| DX-14 | `CompoundXml_UsageEdge_EmitsMemberdefWithReferences` | Usage edge → `<memberdef>` with `<references refid="...">`. | Unit |
+| DX-15 | `CompoundXml_ContainsLocationStub` | Stub `<location file="" line="0" column="0"/>` on every compound. | Unit |
+| DX-16 | `CompoundXml_MultipleEdgesToSameTarget_OneRefPerReason` | Two edges with different reasons → two `<memberdef>` elements. | Unit |
+| DX-17 | `Export_CreatesNamespaceCompounds` | Namespace compound files generated for all unique namespace prefixes. | Unit |
+| DX-18 | `Export_EmptyGraph_ProducesOnlyIndexXml` | Empty graph → `index.xml` only, no compound files. | Unit |
+| DX-19 | `ClassifyEdge_ReturnsExpectedKind("Inherits from", Inheritance)` | Classifies inheritance correctly. | Unit |
+| DX-20 | `ClassifyEdge_ReturnsExpectedKind("Implements interface", InterfaceImplementation)` | Classifies interface implementation correctly. | Unit |
+| DX-21 | `ClassifyEdge_ReturnsExpectedKind("Field type", Usage)` | Usage classification for field type. | Unit |
+| DX-21b | `ClassifyEdge_ReturnsExpectedKind("Method parameter type", Usage)` | Usage classification for method param. | Unit |
+| DX-21c | `ClassifyEdge_ReturnsExpectedKind("Object creation", Usage)` | Usage classification for object creation. | Unit |
+| DX-21d | `ClassifyEdge_ReturnsExpectedKind("Property type", Usage)` | Usage classification for property type. | Unit |
+| DX-22 | `XmlOutput_IsWellFormed` | All generated files parse without `XmlException`. | Unit |
+| DX-23 | `IntegrationExport_SampleGraph_AllTypesPresent` | Full graph export produces files for all types; edges intact. | Integration |
+| DX-24 | `ToCompoundName_ReplacesDotWithDoubleColon` | FQN `.` → `::` in compound name. | Unit |
+| DX-25 | `ExtractNamespaces_ReturnsAllPrefixes` | All dot-delimited prefixes returned for multi-level FQN. | Unit |
+| DX-26 | `NamespaceRefId_EncodesCorrectly` | Namespace refid uses `namespace` prefix + encoded name. | Unit |
+
+### 3.11 PortableExeTests (3 tests)
 
 Tests the self-contained single-file executable publish and execution. Traces to **NFR-4.1**–**NFR-4.3**.
 
@@ -328,6 +365,8 @@ Validates semantic versioning configuration and assembly embedding. Traces to **
 
 | Requirement | Test IDs | Coverage |
 |-------------|----------|----------|
+| **FR-5.3**: `export` subcommand | DX-01–26 | Full |
+| **FR-6.1–6.7**: Doxygen XML export | DX-01–26 | Full |
 | **FR-1**: Target class specification | WB-03, WB-04, WB-05, E2E-01–04 | Full |
 | **FR-2**: Source scope definition | WB-01, WB-02, GB-15 | Full |
 | **FR-3.1**: Roslyn semantic model | WB-01, GB-01–15 | Full |
@@ -392,8 +431,8 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 179, failed: 0, succeeded: 179, skipped: 0
-Duration: ~9s
+Test summary: total: 208, failed: 3 (PortableExeTests — dotnet not in PATH), succeeded: 205, skipped: 0
+Duration: ~26s
 ```
 
 ---
@@ -411,6 +450,5 @@ Tests were developed across four iterative cross-check rounds against the C# lan
 | Post-feature additions | 10 | — | — | 155 |
 | Max transitive depth | 6 | — | — | 166 |
 | Dependency graph | 8 | — | — | 174 |
-| Semantic versioning | 5 | — | — | 179 |
-
+| Semantic versioning | 5 | — | — | 179 || Doxygen XML export + subcommand CLI | 29 | — | — | 208 |
 Round 4 finding zero gaps confirmed convergence: all mainstream C# constructs are covered.
