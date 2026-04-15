@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.1] — 2026-04-15
+
+### Fixed
+- **Reflection detection in self-contained single-file executable**: `Type.GetType`, `Assembly.GetType`, and `Module.GetType` string-literal reflection edges were silently dropped when running as a published single-file exe. In that mode `TRUSTED_PLATFORM_ASSEMBLIES` contains bundle-internal paths that are not physical files on disk, so `MetadataReference.CreateFromFile` failed silently, leaving Roslyn without BCL metadata. Without BCL metadata the semantic model could not resolve `System.Type`, `System.Reflection.Assembly`, or `System.Reflection.Module`, so the reflection detection visitor path never fired. Fixed by adding a syntactic fallback that detects the same three patterns using receiver-text inspection and the Roslyn error-type model (which retains the declared-type name from source annotations even without full BCL metadata).
+
+---
+
 ## [3.1.0] — 2026-04-15
 
 ### Added
