@@ -1,10 +1,10 @@
 # Test Report — C# Dependency Analyzer
 
 > **Document version:** 1.0  
-> **Last updated:** 2026-04-14  
+> **Last updated:** 2026-04-15  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 238  
+> **Total test cases:** 244  
 > **Pass rate:** 98.7 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
 
 ---
@@ -55,7 +55,9 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 12 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
 | 13 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
 | 14 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
-| | **Total** | **238** | | |
+| 15 | `MarkdownReportGeneratorTests.cs` (version line) | 1 | Unit | FR-4.1 |
+| 16 | `ReflectionDependencyTests.cs` | 6 | Unit | FR-3.2 |
+| | **Total** | **244** | | |
 
 ---
 
@@ -392,6 +394,19 @@ Validates semantic versioning configuration and assembly embedding. Traces to **
 |----|------------|-------------|-------|
 | RG-13 | `Generate_ContainsVersionLine` | Report contains tool version in header. | Unit |
 
+### 3.16 ReflectionDependencyTests (6 tests)
+
+Tests static reflection dependency detection via `Type.GetType` and `Assembly.GetType` with string literal arguments. Traces to **FR-3.2**.
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| RF-01 | `Detects_TypeGetType_FullyQualifiedStringLiteral` | `Type.GetType("N.Target")` with in-scope FQN → dependency edge emitted. | Unit |
+| RF-02 | `TypeGetType_TypeNotInScope_NoEdge` | String literal for out-of-scope type → no spurious edge produced. | Unit |
+| RF-03 | `Detects_AssemblyGetType_FullyQualifiedStringLiteral` | `assembly.GetType("N.Target")` with in-scope FQN → dependency edge emitted. | Unit |
+| RF-04 | `TypeGetType_NonLiteralStringArgument_NoEdge` | Variable passed to `Type.GetType` (not a literal) → no edge. | Unit |
+| RF-05 | `TypeGetType_DependencyReason_ContainsReflection` | `DependencyReason` on the emitted edge contains the word `"Reflection"`. | Unit |
+| RF-06 | `TypeGetType_SelfReference_NoSelfEdge` | Type calling `Type.GetType` with its own FQN → no self-loop. | Unit |
+
 ---
 
 ## 4. Requirement Traceability Matrix
@@ -404,7 +419,7 @@ Validates semantic versioning configuration and assembly embedding. Traces to **
 | **FR-1**: Target class specification | WB-03, WB-04, WB-05, E2E-01–04 | Full |
 | **FR-2**: Source scope definition | WB-01, WB-02, GB-15 | Full |
 | **FR-3.1**: Roslyn semantic model | WB-01, GB-01–15 | Full |
-| **FR-3.2**: Dependency detection | GB-01–12, CD-01–37, GP-01–16, R3-01–33, R4-01–19 | Full |
+| **FR-3.2**: Dependency detection | GB-01–12, CD-01–37, GP-01–16, R3-01–33, R4-01–19, RF-01–06 | Full |
 | **FR-3.3**: Transitive closure | FA-01–03, FA-06, R3-31–33, E2E-01 | Full |
 | **FR-3.4**: Target exclusion | FA-05, E2E-01 | Full |
 | **FR-4.1–4.2**: Report content | RG-01–05 | Full |
@@ -440,6 +455,7 @@ Validates semantic versioning configuration and assembly embedding. Traces to **
 | Lambda / local functions | 5 | CD-22, R4-13, R3-29, GP-15, R4-02 |
 | Nested types | 2 | R3-20, R3-21 |
 | Transitive / diamond / circular | 5 | FA-06, R3-31, R3-32, R3-33, E2E-01 |
+| Reflection (Type.GetType / Assembly.GetType string literals) | 6 | RF-01–06 |
 
 ---
 
@@ -465,7 +481,7 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 238, failed: 3 (PortableExeTests — dotnet not in PATH), succeeded: 235, skipped: 0
+Test summary: total: 244, failed: 3 (PortableExeTests — dotnet not in PATH), succeeded: 241, skipped: 0
 Duration: ~30s
 ```
 
@@ -486,4 +502,5 @@ Tests were developed across four iterative cross-check rounds against the C# lan
 | Dependency graph | 8 | — | — | 174 |
 | Semantic versioning | 5 | — | — | 179 || Doxygen XML export + subcommand CLI | 29 | — | — | 208 |
 | Neo4j direct import | 30 | — | — | 238 |
+| Reflection detection (Strategy 1) | 6 | 0 | 0 | 244 |
 Round 4 finding zero gaps confirmed convergence: all mainstream C# constructs are covered.

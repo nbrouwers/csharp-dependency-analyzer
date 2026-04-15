@@ -21,6 +21,7 @@ The following elements should be identified as (transitive) fan-in of `OrderServ
 | 9 | `SampleApp.Services.OrderFactory` | Class | Static member access, method return type | Direct | Calls `OrderService.CreateDefault()` and returns `OrderService` |
 | 10 | `SampleApp.Services.OrderInspector` | Class | Type check (is/as), pattern matching | Direct | Uses `is OrderService` and `as OrderService` |
 | 11 | `SampleApp.Services.OrderLogger` | Class | Local variable type, object creation | Direct | Declares local variable of type `OrderService` |
+| 12 | `SampleApp.Infrastructure.OrderTypeRegistry` | Class | Reflection: Type.GetType string literal | Direct | Calls `Type.GetType("SampleApp.Core.OrderService")` |
 
 ## Expected Non-Fan-In Elements
 
@@ -28,6 +29,7 @@ The following elements should NOT be in the fan-in set:
 
 | Fully Qualified Name | Kind | Reason for Exclusion |
 |----------------------|------|---------------------|
+| `SampleApp.Infrastructure.OrderTypeRegistry` | Class | — |
 | `SampleApp.Core.OrderService` | Class | Target class itself (excluded by definition) |
 | `SampleApp.Core.OrderStatus` | Enum | Used BY `OrderService`, does not depend on it |
 | `SampleApp.Attributes.OrderAttribute` | Class | No dependency on `OrderService` |
@@ -39,10 +41,10 @@ The following elements should NOT be in the fan-in set:
 
 | Kind | Count |
 |------|-------|
-| Class | 7 |
+| Class | 8 |
 | Interface | 1 |
 | Struct | 1 |
 | Record | 1 |
 | Delegate | 1 |
 | Enum | 0 |
-| **Total** | **11** |
+| **Total** | **12** |

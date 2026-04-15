@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Reflection dependency detection (Strategy 1)**: `Type.GetType("FQN")` and `Assembly.GetType("FQN")` calls whose first argument is a string literal matching an in-scope fully qualified type name are now detected and emitted as dependency edges with reason `"Reflection: Type.GetType string literal"` / `"Reflection: Assembly.GetType string literal"`. Dynamic strings (variables, interpolated strings) are intentionally not detected — they require runtime tracing and are out of scope for static analysis.
+- `OrderTypeRegistry` sample class added to `samples/SampleCodebase/` to exercise reflection detection; fan-in count for `SampleApp.Core.OrderService` increases from 11 to 12.
+- 6 new tests (`ReflectionDependencyTests.cs`, RF-01–06) covering: string-literal `Type.GetType` and `Assembly.GetType` detection, out-of-scope suppression, non-literal suppression, self-loop suppression, and reason string verification.
+
+### Notes on reflection support strategy
+
+Four strategies were evaluated (see README — *Reflection Dependency Detection* section for a full comparison table):
+
+| # | Strategy | Decision |
+|---|----------|----------|
+| 1 | Static string-literal scanning (`Type.GetType` / `Assembly.GetType`) | **Implemented** — covers ~80 % of hand-written reflection at ~50 lines of code |
+| 2 | `typeof(T)` and DI generic registrations | Already covered by existing `typeof` and generic-type-argument visitors |
+| 3 | Source-generator outputs | Already covered when generated `.cs` files are included in the file list |
+| 4 | Runtime tracing via EventSource / profiler | Not implemented — natural next milestone for complete coverage |
+
+Strategy 1 was selected for its high coverage-to-cost ratio. Strategy 4 remains available as a future `trace` subcommand if 100 % reflection coverage is required.
+
 ## [3.0.0] — 2026-04-15
 
 ### Changed

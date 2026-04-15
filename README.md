@@ -541,6 +541,44 @@ The dependency visitor detects type references across all mainstream C# construc
 - Delegate signatures and function pointer types
 - Async return types, yield iterators, expression-bodied members
 - Catch clauses, foreach, for, using, and fixed statements
+- Reflection API calls: `Type.GetType("FQN")` and `Assembly.GetType("FQN")` with string literal arguments
+
+## Reflection Dependency Detection
+
+The .NET reflection API (`Type.GetType`, `Assembly.GetType`, `Activator.CreateInstance`, etc.) hides type usage from the compiler — these calls carry type names as runtime strings and are therefore invisible to Roslyn's type system. The analyzer uses **Strategy 1 (static string-literal scanning)** to recover a subset of these hidden dependencies.
+
+### What is detected
+
+When a string literal whose value exactly matches an in-scope fully qualified type name is passed as the first argument to `Type.GetType(...)` or `Assembly.GetType(...)`, the analyzer emits a dependency edge with reason `"Reflection: Type.GetType string literal"` or `"Reflection: Assembly.GetType string literal"`.
+
+```csharp
+Type.GetType("Acme.Core.OrderService")     // → edge: Consumer —[Reflection: Type.GetType]-→ OrderService
+assembly.GetType("Acme.Core.OrderService") // → edge: Consumer —[Reflection: Assembly.GetType]-→ OrderService
+```
+
+Calls where `typeof(T)` is already used (the dominant DI pattern) are covered by the existing `typeof` visitor and do not need this feature.
+
+### What is not detected
+
+| Pattern | Why not detected |
+|---------|------------------|
+| `Type.GetType(typeName)` — variable | String value not known at compile time |
+| `Type.GetType($"Acme.{name}")` — interpolated | Composite expression, not a literal |
+| `Activator.CreateInstance(type)` — computed `Type` | No string literal to inspect |
+| Convention-based scanning (`services.Scan(...)`) | No string literal; resolved at runtime |
+
+### Strategy comparison
+
+Four strategies were evaluated when deciding how to add reflection support:
+
+| # | Strategy | Coverage | Cost | Chosen |
+|---|----------|----------|------|--------|
+| 1 | **Static string-literal scanning** — detect `Type.GetType("literal")` using Roslyn's `InvocationExpressionSyntax` | ~80 % of hand-written reflection in typical codebases | ~50 lines; no new dependencies | **✔ Yes** |
+| 2 | `typeof(T)` and DI generic registrations | Already fully covered by existing `typeof` and generic-type-argument visitors | Zero additional cost | ✔ Already done |
+| 3 | Source-generator outputs | Already covered when generated `.cs` files are included in the file list | Zero additional cost | ✔ Already done |
+| 4 | **Runtime tracing** — instrument BCL `Type.GetType` / `Activator` via EventSource during a test run, feed resolved names back as synthetic edges | 100 % of runtime reflection | Requires a separate `trace` subcommand, a runnable application, and post-processing | ✘ Not implemented |
+
+Strategy 1 was chosen because it covers the dominant pattern at negligible cost, with no runtime dependency. Strategy 4 remains the natural next milestone if complete reflection coverage is required.
 
 ## Dependencies
 

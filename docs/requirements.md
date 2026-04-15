@@ -74,6 +74,7 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
   - Type cast or type check (`is`, `as`, pattern matching)
   - `typeof(T)` expressions
   - Extension method target type
+  - `Type.GetType("FQN")` or `Assembly.GetType("FQN")` calls where the first argument is a string literal whose value matches an in-scope fully qualified type name (Strategy 1 reflection detection)
 - **FR-3.3**: The tool shall compute the transitive closure of all fan-in elements — i.e., if element A depends on the target, and element B depends on A, then B is also included.
 - **FR-3.4**: The target class itself shall not be listed as a fan-in element.
 

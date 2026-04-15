@@ -140,7 +140,7 @@ public class PortableExeTests
             process.WaitForExit(30_000);
 
             Assert.Equal(0, process.ExitCode);
-            Assert.Contains("Found 11 fan-in element(s)", stdout);
+            Assert.Contains("Found 12 fan-in element(s)", stdout);
 
             Assert.True(File.Exists(outputPath), "Report file should be generated");
             var report = File.ReadAllText(outputPath);

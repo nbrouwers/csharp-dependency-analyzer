@@ -524,6 +524,21 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                 {
                     RecordDependency(callContainingType, "Static method call (using static)");
                 }
+
+                // Detect Type.GetType("FQN") and Assembly.GetType("FQN") with a string literal argument.
+                // Only statically-resolvable string literals are captured; dynamic strings are not
+                // detectable without runtime tracing (Strategy 1 — see README for full discussion).
+                if (method.Name == "GetType" &&
+                    IsReflectionGetTypeSource(method) &&
+                    node.ArgumentList.Arguments.Count >= 1 &&
+                    node.ArgumentList.Arguments[0].Expression is LiteralExpressionSyntax reflLit &&
+                    reflLit.IsKind(SyntaxKind.StringLiteralExpression))
+                {
+                    var reflReason = method.ContainingType.Name == "Assembly"
+                        ? "Reflection: Assembly.GetType string literal"
+                        : "Reflection: Type.GetType string literal";
+                    RecordDependencyByFqn(reflLit.Token.ValueText, reflReason);
+                }
             }
         }
         base.VisitInvocationExpression(node);
@@ -695,5 +710,28 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
         {
             _dependencies.Add(new TypeDependency(_currentTypeFqn, fqn, reason));
         }
+    }
+
+    /// <summary>
+    /// Records a dependency edge directly from a string FQN — used for reflection
+    /// call sites where the target type is known via a string literal rather than
+    /// a type syntax node.
+    /// </summary>
+    private void RecordDependencyByFqn(string targetFqn, string reason)
+    {
+        if (_currentTypeFqn == null) return;
+        if (targetFqn != _currentTypeFqn && _inScopeTypes.Contains(targetFqn))
+            _dependencies.Add(new TypeDependency(_currentTypeFqn, targetFqn, reason));
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the method is <c>Type.GetType</c> or
+    /// <c>Assembly.GetType</c> — the two primary reflection entry points whose
+    /// first argument is a fully-qualified type name string.
+    /// </summary>
+    private static bool IsReflectionGetTypeSource(IMethodSymbol method)
+    {
+        var containingTypeName = method.ContainingType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return containingTypeName is "global::System.Type" or "global::System.Reflection.Assembly";
     }
 }

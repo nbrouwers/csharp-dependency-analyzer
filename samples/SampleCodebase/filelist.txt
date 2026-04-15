@@ -14,3 +14,4 @@ NotificationService.cs
 OrderFactory.cs
 OrderInspector.cs
 OrderLogger.cs
+OrderTypeRegistry.cs
