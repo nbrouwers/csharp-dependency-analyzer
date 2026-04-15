@@ -4,8 +4,8 @@
 > **Last updated:** 2026-04-15  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 279  
-> **Pass rate:** 98.9 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
+> **Total test cases:** 282
+> **Pass rate:** 100 %
 
 ---
 
@@ -536,8 +536,8 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 246, failed: 3 (PortableExeTests — dotnet not in PATH), succeeded: 243, skipped: 0
-Duration: ~30s
+Test summary: total: 282, failed: 0, succeeded: 282, skipped: 0
+Duration: ~21s
 ```
 
 ---

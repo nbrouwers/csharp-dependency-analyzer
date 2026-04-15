@@ -15,6 +15,30 @@ public class PortableExeTests
         return Path.Combine(repoRoot, "src", "DependencyAnalyzer");
     }
 
+    /// <summary>
+    /// Returns the full path to the dotnet executable that is currently running
+    /// this test process. Using the full path avoids relying on PATH being set
+    /// inside the spawned child process.
+    /// </summary>
+    private static string FindDotnet()
+    {
+        // The test host IS dotnet — resolve from the running process.
+        var mainModule = Process.GetCurrentProcess().MainModule?.FileName;
+        if (!string.IsNullOrEmpty(mainModule) &&
+            Path.GetFileNameWithoutExtension(mainModule).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+            return mainModule;
+
+        // Fallback: user-install location on Windows.
+        var localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
+        if (!string.IsNullOrEmpty(localAppData))
+        {
+            var candidate = Path.Combine(localAppData, "Microsoft", "dotnet", "dotnet.exe");
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        return "dotnet";
+    }
+
     [Fact]
     public void Publish_ProducesSingleExeFile()
     {
@@ -27,7 +51,7 @@ public class PortableExeTests
 
         var psi = new ProcessStartInfo
         {
-            FileName = "dotnet",
+            FileName = FindDotnet(),
             Arguments = $"publish \"{projectDir}\" -c Release -o \"{publishDir}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -66,7 +90,7 @@ public class PortableExeTests
         {
             var psi2 = new ProcessStartInfo
             {
-                FileName = "dotnet",
+                FileName = FindDotnet(),
                 Arguments = $"publish \"{projectDir}\" -c Release -o \"{publishDir}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -108,7 +132,7 @@ public class PortableExeTests
         {
             var psi2 = new ProcessStartInfo
             {
-                FileName = "dotnet",
+                FileName = FindDotnet(),
                 Arguments = $"publish \"{projectDir}\" -c Release -o \"{publishDir}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
