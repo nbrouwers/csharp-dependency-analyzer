@@ -543,6 +543,49 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                     RecordDependencyByFqn(reflLit.Token.ValueText, reflReason);
                 }
             }
+
+            // Syntactic fallback for reflection detection when BCL metadata cannot be
+            // resolved — e.g., in self-contained single-file published executables where
+            // TRUSTED_PLATFORM_ASSEMBLIES paths are bundle-internal and not physical files.
+            // In that scenario the semantic model cannot bind System.Type / Assembly / Module,
+            // so the block above never fires. Here we use the declared-type NAME from Roslyn's
+            // syntax/error-type model (which IS populated even without full BCL metadata) and
+            // the syntactic text of the receiver to identify the three supported patterns.
+            // The guard avoids double-firing when the semantic path already succeeded.
+            if (!(symbolInfo.Symbol is IMethodSymbol semanticMethod
+                    && semanticMethod.Name == "GetType"
+                    && IsReflectionGetTypeSource(semanticMethod)) &&
+                node.Expression is MemberAccessExpressionSyntax synMas &&
+                synMas.Name.Identifier.Text == "GetType" &&
+                node.ArgumentList.Arguments.Count >= 1 &&
+                node.ArgumentList.Arguments[0].Expression is LiteralExpressionSyntax synLit &&
+                synLit.IsKind(SyntaxKind.StringLiteralExpression))
+            {
+                string? synReason = null;
+
+                // Static call: Type.GetType("FQN") — receiver syntactic text is "Type"
+                var receiverText = synMas.Expression.ToString();
+                if (receiverText is "Type" or "System.Type")
+                {
+                    synReason = "Reflection: Type.GetType string literal";
+                }
+                else
+                {
+                    // Instance call: infer from the declared-type NAME of the receiver variable.
+                    // GetTypeInfo works even for unresolved (error) types: the Name property is
+                    // populated from the source annotation ("Assembly", "Module", etc.).
+                    var recvTypeName = _semanticModel.GetTypeInfo(synMas.Expression).Type?.Name;
+                    synReason = recvTypeName switch
+                    {
+                        "Assembly" => "Reflection: Assembly.GetType string literal",
+                        "Module"   => "Reflection: Module.GetType string literal",
+                        _ => null
+                    };
+                }
+
+                if (synReason != null)
+                    RecordDependencyByFqn(synLit.Token.ValueText, synReason);
+            }
         }
         base.VisitInvocationExpression(node);
     }
