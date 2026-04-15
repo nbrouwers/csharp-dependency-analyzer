@@ -50,7 +50,7 @@ var exportCommand = new Command("export",
 
 var formatOption = new Option<string>(
     "--format",
-    "Export format. Supported values: doxygen, neo4j")
+    "Export format. Supported values: doxygen, neo4j, csv")
 { IsRequired = true };
 
 // Required for --format doxygen; validated at runtime for other formats
@@ -186,9 +186,9 @@ static void RunExport(
 {
     try
     {
-        if (format != "doxygen" && format != "neo4j")
+        if (format != "doxygen" && format != "neo4j" && format != "csv")
         {
-            Console.Error.WriteLine($"ERROR: Unknown export format '{format}'. Supported: doxygen, neo4j");
+            Console.Error.WriteLine($"ERROR: Unknown export format '{format}'. Supported: doxygen, neo4j, csv");
             Environment.ExitCode = 1;
             return;
         }
@@ -230,6 +230,21 @@ static void RunExport(
             var exporter = new DoxygenXmlExporter();
             var fileCount = exporter.Export(graph, outputDir);
             Console.WriteLine($"[Doxygen] Wrote {fileCount} XML file(s).");
+        }
+        else if (format == "csv")
+        {
+            if (outputDir is null)
+            {
+                Console.Error.WriteLine("ERROR: --output-dir is required when --format is csv.");
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            var projectRoot = Path.GetDirectoryName(Path.GetFullPath(filesPath)) ?? ".";
+            Console.WriteLine($"[CSV] Writing to: {Path.GetFullPath(outputDir)}");
+            var exporter = new CsvExporter();
+            var (nodesWritten, relsWritten) = exporter.Export(graph, outputDir, projectRoot);
+            Console.WriteLine($"[CSV] Wrote {nodesWritten} node(s) and {relsWritten} relationship(s).");
         }
         else // neo4j
         {

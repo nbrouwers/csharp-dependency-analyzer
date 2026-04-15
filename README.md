@@ -2,13 +2,15 @@
 
 [![CI](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/nbrouwers/csharp-dependency-analyzer/actions/workflows/ci.yml)
 
-A Roslyn-based static analysis tool with three primary functions:
+A Roslyn-based static analysis tool with four primary functions:
 
 **Fan-in analysis** — Given a target class and a set of source files, identifies every type (class, interface, struct, enum, record, delegate) that directly or transitively depends on the target. Produces a Markdown report with justifications and metrics. Useful when planning to move a class to a separate project or assembly: the fan-in set tells you exactly which types must move along with it to avoid breaking compilation.
 
 **Doxygen XML export** — Exports the complete type dependency graph of a codebase to Doxygen-conformant XML files. Each type becomes a compound XML file with structured edges for inheritance, interface implementation, and usage relationships. Ready for downstream tooling that understands the Doxygen compound schema.
 
 **Neo4j direct import** — Connects directly to a running Neo4j database server (via Bolt) and imports the full dependency graph using a schema that mirrors the Doxygen compound model (`(:Compound)` nodes keyed on Doxygen refids, with `:BASECOMPOUNDREF`, `:REFERENCES`, and `:INNERCLASS` relationships) — no intermediate files. Designed for loading C# codebase graphs into Neo4j for further analysis, visualisation, or graph-query-based impact assessment.
+
+**CSV export** — Exports the dependency graph to a pair of CSV files (`nodes.csv` and `relationships.csv`) with stable SHA-256-derived node IDs and Doxygen-compatible type labels. Ready for bulk import into Neo4j via `neo4j-admin import`, graph databases, or spreadsheet tools.
 
 ## How It Works
 
@@ -33,6 +35,11 @@ From there, each subcommand follows its own path:
 
 3. **Graph serialisation** — The full dependency graph is serialised to Doxygen-conformant XML: one compound file per type, one compound file per namespace, and an `index.xml` catalogue. Inheritance and interface-implementation edges become `<basecompoundref>` elements; usage edges become `<memberdef>/<references>` elements.
 4. **Output** — Files are written to the specified output directory, ready for ingestion into downstream tooling such as Neo4j.
+
+**`export --format csv` (CSV):**
+
+3. **Graph serialisation** — The full dependency graph is serialised to two RFC 4180 CSV files: `nodes.csv` (one row per type, including unresolved references) and `relationships.csv` (one row per dependency edge). Node IDs are stable 16-character hex strings derived from SHA-256(`{fqn}:{typeLabel}`). Source file paths are relativized to the project root.
+4. **Output** — Files are written to the specified output directory.
 
 ## Prerequisites
 
@@ -149,6 +156,15 @@ export NEO4J_PASSWORD=secret
 ./DependencyAnalyzer export --files filelist.txt --format neo4j
 ```
 
+**CSV export** (produces `nodes.csv` and `relationships.csv`):
+
+```bash
+./DependencyAnalyzer export \
+  --files      filelist.txt \
+  --format     csv \
+  --output-dir ./csv-output/
+```
+
 ### CLI Reference
 
 #### `analyze` options
@@ -165,8 +181,8 @@ export NEO4J_PASSWORD=secret
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
 | `--files` | Yes | — | Path to a text file containing one source file path per line. |
-| `--format` | Yes | — | Export format: `doxygen` or `neo4j`. |
-| `--output-dir` | When `doxygen` | — | Directory to write Doxygen XML files into (created if absent). |
+| `--format` | Yes | — | Export format: `doxygen`, `neo4j`, or `csv`. |
+| `--output-dir` | When `doxygen` or `csv` | — | Directory to write output files into (created if absent). |
 | `--neo4j-uri` | No | `bolt://localhost:7687` | Bolt URI of the Neo4j server. |
 | `--neo4j-user` | No | `neo4j` | Neo4j username. |
 | `--neo4j-password` | When `neo4j` | `NEO4J_PASSWORD` env var | Neo4j password. Not logged or persisted. |

@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+
 namespace DependencyAnalyzer.Analysis;
 
 /// <summary>
@@ -37,6 +38,7 @@ public sealed class DependencyGraphBuilder
                     var fqn = RoslynWorkspaceBuilder.GetFullyQualifiedName(namedType);
                     inScopeTypes.Add(fqn);
                     graph.SetElementKind(fqn, MapElementKind(namedType));
+                    graph.SetTypeLocation(fqn, CaptureTypeLocation(namedType));
                 }
             }
 
@@ -48,6 +50,7 @@ public sealed class DependencyGraphBuilder
                     var fqn = RoslynWorkspaceBuilder.GetFullyQualifiedName(namedType);
                     inScopeTypes.Add(fqn);
                     graph.SetElementKind(fqn, ElementKind.Delegate);
+                    graph.SetTypeLocation(fqn, CaptureTypeLocation(namedType));
                 }
             }
         }
@@ -67,6 +70,12 @@ public sealed class DependencyGraphBuilder
                 graph.AddEdge(dep);
                 edgeCount++;
             }
+
+            foreach (var (dep, loc) in visitor.EdgeLocations)
+                graph.SetEdgeLocation(dep, loc);
+
+            foreach (var fqn in visitor.UnresolvedReferences)
+                graph.AddUnresolvedReference(fqn);
         }
 
         _log($"Collected {edgeCount} dependency edge(s).");
@@ -88,4 +97,25 @@ public sealed class DependencyGraphBuilder
             _ => ElementKind.Class
         };
     }
+
+    private static TypeLocation CaptureTypeLocation(INamedTypeSymbol namedType)
+    {
+        var location  = namedType.Locations.FirstOrDefault(l => l.IsInSource);
+        var declRef   = namedType.DeclaringSyntaxReferences.FirstOrDefault();
+        var startLine = location?.GetLineSpan().StartLinePosition.Line + 1 ?? 0;
+        var endLine   = declRef?.GetSyntax().GetLocation().GetLineSpan().EndLinePosition.Line + 1 ?? 0;
+        var access    = MapAccessibility(namedType.DeclaredAccessibility);
+        var filePath  = location?.SourceTree?.FilePath ?? "";
+        return new TypeLocation(filePath, startLine, endLine, access);
+    }
+
+    private static string MapAccessibility(Accessibility accessibility) => accessibility switch
+    {
+        Accessibility.Public              => "public",
+        Accessibility.Private             => "private",
+        Accessibility.Protected           => "protected",
+        Accessibility.Internal            => "internal",
+        Accessibility.ProtectedOrInternal => "protected internal",
+        _                                 => "internal"
+    };
 }

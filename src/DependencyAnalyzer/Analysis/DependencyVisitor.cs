@@ -16,8 +16,12 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
     private readonly List<TypeDependency> _dependencies = new();
 
     private string? _currentTypeFqn;
+    private readonly Dictionary<TypeDependency, DependencyLocation> _edgeLocations = new();
+    private readonly List<string> _unresolvedReferences = new();
 
     public IReadOnlyList<TypeDependency> Dependencies => _dependencies;
+    public IReadOnlyDictionary<TypeDependency, DependencyLocation> EdgeLocations => _edgeLocations;
+    public IReadOnlyList<string> UnresolvedReferences => _unresolvedReferences;
 
     public DependencyVisitor(SemanticModel semanticModel, HashSet<string> inScopeTypes)
     {
@@ -73,7 +77,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                     var reason = namedType.TypeKind == TypeKind.Interface
                         ? "Implements interface"
                         : "Inherits from";
-                    RecordDependency(namedType, reason);
+                    RecordDependency(namedType, reason, baseType.Type);
                 }
             }
         }
@@ -132,7 +136,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                     var reason = namedType.TypeKind == TypeKind.Interface
                         ? "Implements interface"
                         : "Inherits from";
-                    RecordDependency(namedType, reason);
+                    RecordDependency(namedType, reason, baseType.Type);
                 }
             }
         }
@@ -338,7 +342,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
             // Get the type from the expression itself (more reliable than node.Type)
             var typeInfo = _semanticModel.GetTypeInfo(node);
             if (typeInfo.Type is INamedTypeSymbol namedType)
-                RecordDependency(namedType, "Object creation (new)");
+                RecordDependency(namedType, "Object creation (new)", node);
         }
         base.VisitObjectCreationExpression(node);
     }
@@ -350,7 +354,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
             // Target-typed new: `Target t = new();`
             var typeInfo = _semanticModel.GetTypeInfo(node);
             if (typeInfo.Type is INamedTypeSymbol namedType)
-                RecordDependency(namedType, "Implicit object creation (new())");
+                RecordDependency(namedType, "Implicit object creation (new())", node);
         }
         base.VisitImplicitObjectCreationExpression(node);
     }
@@ -389,7 +393,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
         {
             var symbolInfo = _semanticModel.GetSymbolInfo(node);
             if (symbolInfo.Symbol?.ContainingType is INamedTypeSymbol attrType)
-                RecordDependency(attrType, "Attribute usage");
+                RecordDependency(attrType, "Attribute usage", node);
         }
         base.VisitAttribute(node);
     }
@@ -454,14 +458,14 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
             var typeInfo = _semanticModel.GetTypeInfo(node.Expression);
             if (typeInfo.Type is INamedTypeSymbol namedType)
             {
-                RecordDependency(namedType, "Pattern matching (constant pattern type reference)");
+                RecordDependency(namedType, "Pattern matching (constant pattern type reference)", node.Expression);
             }
             else
             {
                 // Also try GetSymbolInfo — the expression might resolve to a type symbol directly
                 var symbolInfo = _semanticModel.GetSymbolInfo(node.Expression);
                 if (symbolInfo.Symbol is INamedTypeSymbol typeSymbol)
-                    RecordDependency(typeSymbol, "Pattern matching (constant pattern type reference)");
+                    RecordDependency(typeSymbol, "Pattern matching (constant pattern type reference)", node.Expression);
             }
         }
         base.VisitConstantPattern(node);
@@ -482,7 +486,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
             var symbol = symbolInfo.Symbol;
             if (symbol is { IsStatic: true, ContainingType: INamedTypeSymbol containingType })
             {
-                RecordDependency(containingType, "Static member access");
+                RecordDependency(containingType, "Static member access", node);
             }
 
             // Handle nameof(Target.Member) — the left side (Expression) is a type reference
@@ -491,7 +495,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
             {
                 var leftSymbol = _semanticModel.GetSymbolInfo(identifier);
                 if (leftSymbol.Symbol is INamedTypeSymbol typeSymbol)
-                    RecordDependency(typeSymbol, "nameof() type reference");
+                    RecordDependency(typeSymbol, "nameof() type reference", identifier);
             }
         }
         base.VisitMemberAccessExpression(node);
@@ -513,7 +517,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                     {
                         var thisParamType = reducedFrom.Parameters[0].Type;
                         if (thisParamType is INamedTypeSymbol namedType)
-                            RecordDependency(namedType, "Extension method target type");
+                            RecordDependency(namedType, "Extension method target type", node);
                     }
                 }
 
@@ -522,7 +526,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                 // may come from a `using static` import.
                 if (node.Expression is IdentifierNameSyntax && method.ContainingType is INamedTypeSymbol callContainingType)
                 {
-                    RecordDependency(callContainingType, "Static method call (using static)");
+                    RecordDependency(callContainingType, "Static method call (using static)", node);
                 }
 
                 // Detect Type.GetType("FQN") and Assembly.GetType("FQN") with a string literal argument.
@@ -607,7 +611,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                     // Only if accessed without qualifier (parent is not MemberAccessExpression)
                     if (node.Parent is not MemberAccessExpressionSyntax mas || mas.Name != node)
                     {
-                        RecordDependency(memberContaining, "Static member access (using static)");
+                        RecordDependency(memberContaining, "Static member access (using static)", node);
                     }
                 }
             }
@@ -618,7 +622,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                 // Verify this is inside a nameof context or a standalone type reference
                 if (node.Parent is ArgumentSyntax)
                 {
-                    RecordDependency(typeRef, "nameof() type reference");
+                    RecordDependency(typeRef, "nameof() type reference", node);
                 }
             }
             // Also check via GetTypeInfo for aliases
@@ -627,7 +631,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                 var typeInfo = _semanticModel.GetTypeInfo(node);
                 if (typeInfo.Type is INamedTypeSymbol namedType && node.Parent is ArgumentSyntax)
                 {
-                    RecordDependency(namedType, "nameof() type reference");
+                    RecordDependency(namedType, "nameof() type reference", node);
                 }
             }
         }
@@ -698,13 +702,13 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                 elementType = nested.ElementType;
             if (elementType is INamedTypeSymbol arrayElementType)
             {
-                RecordDependency(arrayElementType, reason);
+                RecordDependency(arrayElementType, reason, typeSyntax);
                 if (arrayElementType.IsGenericType)
                 {
                     foreach (var typeArg in arrayElementType.TypeArguments)
                     {
                         if (typeArg is INamedTypeSymbol argType)
-                            RecordDependency(argType, "Generic type argument");
+                            RecordDependency(argType, "Generic type argument", typeSyntax);
                     }
                 }
             }
@@ -715,13 +719,13 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
         if (typeSymbol is IPointerTypeSymbol pointerType)
         {
             if (pointerType.PointedAtType is INamedTypeSymbol pointedAt)
-                RecordDependency(pointedAt, reason);
+                RecordDependency(pointedAt, reason, typeSyntax);
             return;
         }
 
         if (typeSymbol is INamedTypeSymbol namedType)
         {
-            RecordDependency(namedType, reason);
+            RecordDependency(namedType, reason, typeSyntax);
 
             // Also record dependencies on generic type arguments
             if (namedType.IsGenericType)
@@ -729,7 +733,7 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                 foreach (var typeArg in namedType.TypeArguments)
                 {
                     if (typeArg is INamedTypeSymbol argType)
-                        RecordDependency(argType, "Generic type argument");
+                        RecordDependency(argType, "Generic type argument", typeSyntax);
                 }
             }
         }
@@ -739,11 +743,11 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
             && nullable.TypeArguments.Length > 0
             && nullable.TypeArguments[0] is INamedTypeSymbol underlyingType)
         {
-            RecordDependency(underlyingType, reason);
+            RecordDependency(underlyingType, reason, typeSyntax);
         }
     }
 
-    private void RecordDependency(INamedTypeSymbol typeSymbol, string reason)
+    private void RecordDependency(INamedTypeSymbol typeSymbol, string reason, SyntaxNode? site = null)
     {
         if (_currentTypeFqn == null) return;
 
@@ -754,7 +758,19 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
         // Only record if the target is in scope and not self-referencing
         if (fqn != _currentTypeFqn && _inScopeTypes.Contains(fqn))
         {
-            _dependencies.Add(new TypeDependency(_currentTypeFqn, fqn, reason));
+            var dep = new TypeDependency(_currentTypeFqn, fqn, reason);
+            _dependencies.Add(dep);
+            if (site != null)
+            {
+                var span = site.GetLocation().GetLineSpan();
+                _edgeLocations[dep] = new DependencyLocation(
+                    span.StartLinePosition.Line + 1,
+                    span.EndLinePosition.Line + 1);
+            }
+        }
+        else if (fqn != _currentTypeFqn && !_inScopeTypes.Contains(fqn) && SharesNamespaceRoot(fqn))
+        {
+            _unresolvedReferences.Add(fqn);
         }
     }
 
@@ -763,11 +779,25 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
     /// call sites where the target type is known via a string literal rather than
     /// a type syntax node.
     /// </summary>
-    private void RecordDependencyByFqn(string targetFqn, string reason)
+    private void RecordDependencyByFqn(string targetFqn, string reason, SyntaxNode? site = null)
     {
         if (_currentTypeFqn == null) return;
         if (targetFqn != _currentTypeFqn && _inScopeTypes.Contains(targetFqn))
-            _dependencies.Add(new TypeDependency(_currentTypeFqn, targetFqn, reason));
+        {
+            var dep = new TypeDependency(_currentTypeFqn, targetFqn, reason);
+            _dependencies.Add(dep);
+            if (site != null)
+            {
+                var span = site.GetLocation().GetLineSpan();
+                _edgeLocations[dep] = new DependencyLocation(
+                    span.StartLinePosition.Line + 1,
+                    span.EndLinePosition.Line + 1);
+            }
+        }
+        else if (targetFqn != _currentTypeFqn && !_inScopeTypes.Contains(targetFqn) && SharesNamespaceRoot(targetFqn))
+        {
+            _unresolvedReferences.Add(targetFqn);
+        }
     }
 
     /// <summary>
@@ -781,5 +811,21 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
         return containingTypeName is "global::System.Type"
             or "global::System.Reflection.Assembly"
             or "global::System.Reflection.Module";
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="fqn"/> shares a top-level
+    /// namespace root with at least one in-scope type.  Used to track references to
+    /// types that look like project-internal types but could not be resolved.
+    /// </summary>
+    private bool SharesNamespaceRoot(string fqn)
+    {
+        foreach (var inScope in _inScopeTypes)
+        {
+            var root = inScope.Split('.')[0];
+            if (fqn.StartsWith(root + ".", StringComparison.Ordinal) || fqn == root)
+                return true;
+        }
+        return false;
     }
 }

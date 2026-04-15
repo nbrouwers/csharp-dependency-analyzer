@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.0] — 2026-04-15
+
+### Added
+- **CSV export (`--format csv`)**: `export --format csv --output-dir <dir>` now produces two RFC 4180 CSV files — `nodes.csv` and `relationships.csv` — suitable for bulk import into Neo4j via `neo4j-admin import`, graph analysis, or spreadsheet tooling.
+  - `nodes.csv` columns: `id:ID`, `name`, `type`, `:LABEL`, `file`, `startLine:int`, `endLine:int`, `accessibility`, `fullyqualifiedname`, `resolved:boolean`.
+  - `relationships.csv` columns: `:START_ID`, `:END_ID`, `:TYPE`, `startLine:int`, `endLine:int`.
+  - Node IDs are stable 16-character lowercase hex strings derived from `SHA-256("{fqn}:{typeLabel}")[..16]`.
+  - Doxygen-compatible type labels: `class`, `interface`, `struct`, `enum` (records → `class`, delegates → `interface`).
+  - Relationship types: `basecompoundref` for inheritance/interface-implementation; `ref` for all other edges.
+  - Unresolved references (referenced in code but not found in source, sharing a namespace root with in-scope types) appear as extra nodes with `resolved:boolean=false`.
+  - Source file paths are relativized to the project root (directory of the file list), using forward slashes.
+  - `startLine`/`endLine` reflect 1-based Roslyn source locations for both node declarations and edge call sites (best-effort; 0 if unavailable).
+  - Output files are UTF-8 without BOM.
+- **`CsvIdHelper`** (`Models/CsvIdHelper.cs`): static helpers `ToNodeId`, `ToTypeLabel`, `ToRelationshipType` used by `CsvExporter` and testable independently.
+- **Source location enrichment**: `DependencyGraph` now stores `TypeLocations` (file path, start/end line, accessibility per FQN) and `EdgeLocations` (call-site start/end line per `TypeDependency` edge). `DependencyGraphBuilder` populates `TypeLocations` from the Roslyn semantic model during Pass 1 and merges `EdgeLocations` and `UnresolvedReferences` from `DependencyVisitor` during Pass 2.
+- **Unresolved reference tracking**: `DependencyVisitor` now tracks FQNs that are referenced in code, not found in scope, but share a namespace root with at least one in-scope type. These are surfaced in the graph as `UnresolvedReferences` and written as `resolved:boolean=false` rows in `nodes.csv`.
+- **Call-site locations**: All `RecordDependency` call sites in `DependencyVisitor` now pass the relevant `SyntaxNode` as the `site` parameter, enabling edge-level line number capture.
+- 28 new tests: `CsvIdHelperTests.cs` (CI-01–CI-05, 10 theory cases) and `CsvExporterTests.cs` (CV-01–CV-23).
+
+---
+
 ## [3.1.1] — 2026-04-15
 
 ### Fixed

@@ -4,8 +4,8 @@
 > **Last updated:** 2026-04-15  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 246  
-> **Pass rate:** 98.7 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
+> **Total test cases:** 284  
+> **Pass rate:** 98.9 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
 
 ---
 
@@ -57,7 +57,9 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 14 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
 | 15 | `MarkdownReportGeneratorTests.cs` (version line) | 1 | Unit | FR-4.1 |
 | 16 | `ReflectionDependencyTests.cs` | 8 | Unit | FR-3.2 |
-| | **Total** | **246** | | |
+| 17 | `CsvIdHelperTests.cs` | 10 | Unit | FR-8.4–FR-8.6 |
+| 18 | `CsvExporterTests.cs` | 23 | Unit/Integration | FR-8.1–FR-8.11 |
+| | **Total** | **284** | | |
 
 ---
 
@@ -409,15 +411,71 @@ Tests static reflection dependency detection via `Type.GetType`, `Assembly.GetTy
 | RF-07 | `Detects_ModuleGetType_FullyQualifiedStringLiteral` | `module.GetType("N.Target")` with in-scope FQN → dependency edge emitted. | Unit |
 | RF-08 | `ModuleGetType_DependencyReason_ContainsModuleAndReflection` | `DependencyReason` contains both `"Reflection"` and `"Module"`. | Unit |
 
+### 3.17 CsvIdHelperTests (10 tests)
+
+Tests the deterministic ID, label, and relationship-type helpers used by the CSV exporter. Traces to **FR-8.4**–**FR-8.6**.
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| CI-01 | `ToNodeId_ReturnsSixteenCharLowercaseHex` | Node ID is exactly 16 lowercase hex chars. | Unit |
+| CI-02 | `ToNodeId_IsDeterministic` | Same inputs always produce the same node ID. | Unit |
+| CI-03a | `ToNodeId_DiffersForDifferentInputs(Ns.A/class vs Ns.B/class)` | Different FQNs produce different IDs. | Unit |
+| CI-03b | `ToNodeId_DiffersForDifferentInputs(Ns.A/class vs Ns.A/interface)` | Same FQN different label produces different ID. | Unit |
+| CI-04a | `ToTypeLabel_MapsElementKindCorrectly(Interface, “interface”)` | Interface kind maps to label `"interface"`. | Unit |
+| CI-04b | `ToTypeLabel_MapsElementKindCorrectly(Struct, “struct”)` | Struct kind maps to `"struct"`. | Unit |
+| CI-04c | `ToTypeLabel_MapsElementKindCorrectly(Enum, “enum”)` | Enum kind maps to `"enum"`. | Unit |
+| CI-04d | `ToTypeLabel_MapsElementKindCorrectly(Class, “class”)` | Class kind maps to `"class"`. | Unit |
+| CI-04e | `ToTypeLabel_MapsElementKindCorrectly(Record, “class”)` | Record kind maps to `"class"`. | Unit |
+| CI-04f | `ToTypeLabel_MapsElementKindCorrectly(Delegate, “interface”)` | Delegate kind maps to `"interface"`. | Unit |
+| CI-05a | `ToRelationshipType_MapsReasonCorrectly(“Inherits from”, “basecompoundref”)` | Inheritance maps to `basecompoundref`. | Unit |
+| CI-05b | `ToRelationshipType_MapsReasonCorrectly(“Implements interface”, “basecompoundref”)` | Interface implementation maps to `basecompoundref`. | Unit |
+| CI-05c | `ToRelationshipType_MapsReasonCorrectly(“Object creation (new)”, “ref”)` | Object creation maps to `ref`. | Unit |
+| CI-05d | `ToRelationshipType_MapsReasonCorrectly(“Field type”, “ref”)` | Field type maps to `ref`. | Unit |
+| CI-05e | `ToRelationshipType_MapsReasonCorrectly(“Method return type”, “ref”)` | Method return type maps to `ref`. | Unit |
+
+### 3.18 CsvExporterTests (23 tests)
+
+Tests the CSV export producing `nodes.csv` and `relationships.csv`. Covers file creation, headers, row structure, ID consistency, field escaping, and an end-to-end smoke test. Traces to **FR-8.1**–**FR-8.11**.
+
+| ID | Test Method | Description | Level |
+|----|------------|-------------|-------|
+| CV-01 | `Export_CreatesOutputDirectoryAndBothFiles` | Both `nodes.csv` and `relationships.csv` are created. | Unit |
+| CV-02 | `Export_NodesCsvHasCorrectHeader` | `nodes.csv` has the 10-column header row. | Unit |
+| CV-03 | `Export_RelsCsvHasCorrectHeader` | `relationships.csv` has the 5-column header row. | Unit |
+| CV-04 | `Export_ReturnsCorrectNodeCount` | Return value `NodesWritten` equals number of in-scope types. | Unit |
+| CV-05 | `Export_ReturnsCorrectRelationshipCount` | Return value `RelsWritten` ≥ 1 when edges exist. | Unit |
+| CV-06 | `Export_EmptyGraph_OnlyHeaderLines` | Empty graph produces header-only files. | Unit |
+| CV-07 | `Export_NodeRow_HasTenFields` | Each data row in `nodes.csv` has exactly 10 fields. | Unit |
+| CV-08 | `Export_RelRow_HasFiveFields` | Each data row in `relationships.csv` has exactly 5 fields. | Unit |
+| CV-09 | `Export_NodeRow_ContainsFqn` | Node row contains the type’s fully qualified name. | Unit |
+| CV-10 | `Export_NodeRow_SimpleNameInNameColumn` | Name column holds only the simple (unqualified) type name. | Unit |
+| CV-11 | `Export_ResolvedFlag_CorrectValues` | In-scope nodes have `resolved:boolean=true`; unresolved nodes have `false`. | Unit |
+| CV-12 | `Export_UnresolvedReference_AppearsInNodesCsv` | Unresolved references added via `AddUnresolvedReference` appear in output. | Unit |
+| CV-13 | `Export_UnresolvedDuplicatesInScope_NotDoubleWritten` | FQN in both ElementKinds and UnresolvedReferences emits only one row. | Unit |
+| CV-14 | `Export_InheritanceEdge_GetsBaseCompoundRef` | Inheritance edge produces relationship type `basecompoundref`. | Unit |
+| CV-15 | `Export_InterfaceImplementationEdge_GetsBaseCompoundRef` | Interface-impl edge produces relationship type `basecompoundref`. | Unit |
+| CV-16 | `Export_GeneralDependencyEdge_GetsRef` | Non-inheritance edge produces relationship type `ref`. | Unit |
+| CV-17 | `Export_NodeIdsInRelsMatchNodesCsv` | All `:START_ID`/`:END_ID` values in `relationships.csv` exist as `id:ID` in `nodes.csv`. | Unit |
+| CV-18a | `EscapeCsvField_HandlesSpecialChars(“hello,world”)` | Comma triggers quoting. | Unit |
+| CV-18b | `EscapeCsvField_HandlesSpecialChars(“say \"hi\"”)` | Embedded double-quote is doubled and wrapped. | Unit |
+| CV-18c | `EscapeCsvField_HandlesSpecialChars(“line\nbreak”)` | Newline triggers quoting. | Unit |
+| CV-18d | `EscapeCsvField_HandlesSpecialChars(“plain”)` | Plain value is returned as-is. | Unit |
+| CV-19 | `Export_InterfaceType_HasInterfaceLabel` | Interface node has `type=interface` and `:LABEL=interface`. | Unit |
+| CV-20 | `Export_StructType_HasStructLabel` | Struct node has `type=struct`. | Unit |
+| CV-21 | `Export_EnumType_HasEnumLabel` | Enum node has `type=enum`. | Unit |
+| CV-22 | `Export_OutputFiles_AreUtf8WithoutBom` | Both output files are UTF-8 without BOM. | Unit |
+| CV-23 | `Export_SampleCodebase_ProducesNonEmptyOutput` | End-to-end export of sample codebase: nodes > 0 and rels > 0. | Integration |
+
 ---
 
 ## 4. Requirement Traceability Matrix
 
 | Requirement | Test IDs | Coverage |
 |-------------|----------|----------|
-| **FR-5.3**: `export` subcommand | DX-01–26, NJ-01–25 | Full |
+| **FR-5.3**: `export` subcommand | DX-01–26, NJ-01–25, CV-01–23 | Full |
 | **FR-6.1–6.7**: Doxygen XML export | DX-01–26 | Full |
 | **FR-7.1–7.7**: Neo4j direct import | NJ-01–25 | Full |
+| **FR-8.1–8.11**: CSV export | CV-01–23, CI-01–05 | Full |
 | **FR-1**: Target class specification | WB-03, WB-04, WB-05, E2E-01–04 | Full |
 | **FR-2**: Source scope definition | WB-01, WB-02, GB-15 | Full |
 | **FR-3.1**: Roslyn semantic model | WB-01, GB-01–15 | Full |

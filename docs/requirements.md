@@ -20,7 +20,7 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 
 - **FR-5.1**: The tool shall expose its functionality through named subcommands. The current subcommands are `analyze` and `export`.
 - **FR-5.2**: The `analyze` subcommand shall compute the dependency analysis for a specified target class and produce a structured report. It shall support a `--mode` option (`fan-in` by default) to select the analysis direction; unknown mode values shall produce a clear error.
-- **FR-5.3**: The `export` subcommand shall extract the full dependency graph of the source scope and write it to an external format. It shall not require a target class. It shall support a `--format` option; supported values are `doxygen` and `neo4j`.
+- **FR-5.3**: The `export` subcommand shall extract the full dependency graph of the source scope and write it to an external format. It shall not require a target class. It shall support a `--format` option; supported values are `doxygen`, `neo4j`, and `csv`.
 - **FR-5.4**: Both subcommands shall share the same `--files` file-list mechanism (FR-2.1).
 
 ### FR-7: Neo4j Direct Import
@@ -36,6 +36,20 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
 - **FR-7.6**: The tool shall not log or persist the Neo4j password. Error messages involving connection failures shall not include credential values.
 - **FR-7.7**: After import, the tool shall report the number of nodes written and the number of relationships written to the console.
 - **FR-7.8**: Each unique namespace prefix found within the in-scope type FQNs shall be imported as a `(:Compound {kind: "namespace"})` node, mirroring the Doxygen `<compounddef kind="namespace">` compound. A `INNERCLASS {prot: "public"}` relationship shall be written from each namespace compound to each type it directly contains, mirroring the Doxygen `<innerclass>` element.
+
+### FR-8: CSV Export
+
+- **FR-8.1**: The `export --format csv` command shall write two CSV files — `nodes.csv` and `relationships.csv` — to the directory specified by `--output-dir` (created if absent). `--output-dir` is required for `--format csv`.
+- **FR-8.2**: `nodes.csv` shall have the header `id:ID,name,type,:LABEL,file,startLine:int,endLine:int,accessibility,fullyqualifiedname,resolved:boolean`.
+- **FR-8.3**: `relationships.csv` shall have the header `:START_ID,:END_ID,:TYPE,startLine:int,endLine:int`.
+- **FR-8.4**: The `id` column in `nodes.csv` and the `START_ID`/`END_ID` columns in `relationships.csv` shall be deterministic 16-character lowercase hex strings derived from the first 8 bytes of SHA-256(`{fqn}:{typeLabel}`).
+- **FR-8.5**: The `:LABEL` and `type` columns shall use Doxygen-compatible type labels: `class`, `interface`, `struct`, `enum`. Records map to `class`; delegates map to `interface`.
+- **FR-8.6**: Inheritance and interface-implementation edges shall use the relationship type `basecompoundref`; all other edges shall use `ref`.
+- **FR-8.7**: In-scope types shall appear with `resolved:boolean = true`. Types referenced in code but not resolvable to an in-scope type (unresolved references) that share a namespace root with at least one in-scope type shall also appear as nodes with `resolved:boolean = false`.
+- **FR-8.8**: Source file paths in `nodes.csv` shall be relativized to the directory containing the file list (the `projectRoot`), using forward slashes.
+- **FR-8.9**: The `startLine` and `endLine` columns for nodes shall be 1-based line numbers derived from the Roslyn semantic model at build time. The same columns in `relationships.csv` shall reflect the call-site location (best-effort; 0 if unavailable).
+- **FR-8.10**: CSV field values that contain commas, double-quotes, or newline characters shall be escaped per RFC 4180 (wrap in double-quotes; double any embedded double-quotes).
+- **FR-8.11**: Both output files shall be UTF-8 encoded without BOM.
 
 ### FR-6: Doxygen XML Export
 
