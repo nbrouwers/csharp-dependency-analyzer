@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.1] — 2026-04-15
+
+### Changed
+- **Neo4j export schema aligned with CSV export**: `export --format neo4j` now produces an identical graph schema to `neo4j-admin import` from `export --format csv` output.
+  - Node IDs are now stable 16-character SHA-256-derived hex strings via `CsvIdHelper.ToNodeId` — matching the `id:ID` column in `nodes.csv`.
+  - Node labels are now type labels (`:class`, `:interface`, `:struct`, `:enum`) instead of `:Compound`.
+  - Node properties now mirror CSV columns exactly: `id`, `name`, `type`, `label`, `file`, `startLine`, `endLine`, `accessibility`, `fullyqualifiedname`, `resolved`.
+  - Relationship types are now `basecompoundref` and `ref` with `startLine`/`endLine` properties — matching the `:TYPE` column and edge columns in `relationships.csv`.
+  - Namespace compound nodes and `:INNERCLASS` relationships have been removed.
+  - Unresolved references (types referenced in code but not in scope) are imported as `resolved = false` nodes, matching the CSV export behaviour.
+- **Database cleared before import**: `export --format neo4j` now executes `MATCH (n) DETACH DELETE n` before writing any nodes or relationships, ensuring the database contains exactly and only the exported graph. Re-running the export on the same database no longer retains data from the previous run.
+
+### Removed
+- `BuildNamespaceParameters`, `GetVirt`, `CollectInnerClassOperations` internal helpers on `Neo4jExporter` (superseded by CSV-aligned schema).
+
+### Changed (internal)
+- `BuildNodeParameters` now accepts an optional `TypeLocation?` parameter for source location (file, lines, accessibility).
+- `EdgeOperation` record simplified: removed `Reason` and `Query` fields.
+- Added `BuildUnresolvedNodeParameters` helper for unresolved-reference nodes.
+- 19 new Neo4j exporter tests (NJ-01–NJ-19) replacing 25 old tests (NJ-01–NJ-25) — net reduction of 6 test cases.
+
+---
+
 ## [3.2.0] — 2026-04-15
 
 ### Added

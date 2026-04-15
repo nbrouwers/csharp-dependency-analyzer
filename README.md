@@ -8,7 +8,7 @@ A Roslyn-based static analysis tool with four primary functions:
 
 **Doxygen XML export** — Exports the complete type dependency graph of a codebase to Doxygen-conformant XML files. Each type becomes a compound XML file with structured edges for inheritance, interface implementation, and usage relationships. Ready for downstream tooling that understands the Doxygen compound schema.
 
-**Neo4j direct import** — Connects directly to a running Neo4j database server (via Bolt) and imports the full dependency graph using a schema that mirrors the Doxygen compound model (`(:Compound)` nodes keyed on Doxygen refids, with `:BASECOMPOUNDREF`, `:REFERENCES`, and `:INNERCLASS` relationships) — no intermediate files. Designed for loading C# codebase graphs into Neo4j for further analysis, visualisation, or graph-query-based impact assessment.
+**Neo4j direct import** — Connects directly to a running Neo4j database server (via Bolt) and imports the full dependency graph using the same schema as the CSV export — type-labelled nodes (`:class`, `:interface`, `:struct`, `:enum`) keyed on stable SHA-256-derived IDs, with `:basecompoundref` and `:ref` relationships — no intermediate files. Designed for loading C# codebase graphs into Neo4j for further analysis, visualisation, or graph-query-based impact assessment. The schema produced by `--format neo4j` and the schema produced by `neo4j-admin import` from `--format csv` are identical.
 
 **CSV export** — Exports the dependency graph to a pair of CSV files (`nodes.csv` and `relationships.csv`) with stable SHA-256-derived node IDs and Doxygen-compatible type labels. Ready for bulk import into Neo4j via `neo4j-admin import`, graph databases, or spreadsheet tools.
 
@@ -28,7 +28,7 @@ From there, each subcommand follows its own path:
 
 **`export --format neo4j` (Neo4j import):**
 
-3. **Graph import** — The graph is imported using a schema that mirrors the Doxygen compound model: each type and namespace becomes a `(:Compound {id, kind, name, fqn, language})` node, MERGE-keyed on the Doxygen refid. Structural edges (inheritance, interface implementation) become `:BASECOMPOUNDREF {prot, virt}` relationships; usage edges become `:REFERENCES {kind: "variable", reason}` relationships; namespace-to-type membership becomes `:INNERCLASS {prot: "public"}`. All writes use `MERGE`, making the import fully idempotent.
+3. **Graph import** — The target database is first cleared (`MATCH (n) DETACH DELETE n`) so the result contains exactly the exported graph. Each in-scope type is then imported as a type-labelled node (e.g. `(:class {id, name, type, label, file, startLine, endLine, accessibility, fullyqualifiedname, resolved: true})`), MERGE-keyed on a stable 16-character SHA-256-derived `id`. Types referenced but not resolvable to an in-scope type are imported as `resolved: false` nodes. Structural edges (inheritance, interface implementation) become `` :basecompoundref {startLine, endLine} `` relationships; all other usage edges become `` :ref {startLine, endLine} `` relationships. All writes use `MERGE`, making the import fully idempotent.
 4. **Output** — The tool reports the number of nodes and relationships written to the console. No files are produced.
 
 **`export --format doxygen` (Doxygen XML):**
@@ -289,51 +289,56 @@ Because `DependencyGraph` does not store source-file positions, every `<compound
 
 ## Neo4j Graph Schema
 
-The `export --format neo4j` subcommand imports the internal `DependencyGraph` model into Neo4j using a schema that deliberately mirrors the Doxygen compound model (compound.xsd version 1.9.1). This makes the two export formats semantically equivalent: anything that can be expressed in the Doxygen XML can be queried in the Neo4j graph with the same concepts and terminology.
+The `export --format neo4j` subcommand imports the internal `DependencyGraph` model into Neo4j using **the same schema as `export --format csv`**. A graph loaded via direct import and a graph loaded via `neo4j-admin import` from CSV files are identical — same node IDs, same node labels, same properties, same relationship types and properties.
 
-### Node label and properties
+Before any writes, the database is cleared with `MATCH (n) DETACH DELETE n` so the database contains exactly the exported graph — no stale data from previous runs is retained.
 
-All nodes carry the label **`:Compound`**.
+### Node labels and properties
 
-| Property | Type | Description | Doxygen equivalent |
-|----------|------|-------------|-------------------|
-| `id` | string | Doxygen refid — unique and deterministic; used as the `MERGE` key. Example: `classAcme_1_1Core_1_1OrderService` | `compounddef/@id` |
-| `kind` | string | Doxygen kind string: `class`, `interface`, `struct`, `enum`, `namespace` | `compounddef/@kind` |
-| `name` | string | Compound name using `::` as namespace separator. Example: `Acme::Core::OrderService` | `<compoundname>` |
-| `fqn` | string | Original .NET fully qualified name. Example: `Acme.Core.OrderService` | — (extension) |
-| `language` | string | Always `"C#"` | `compounddef/@language` |
+Each in-scope type is imported as a node whose label is its type label — `:class`, `:interface`, `:struct`, or `:enum`.
 
-> **`ElementKind` → `kind` mapping** — `Class`, `Record`, and `Delegate` all map to `"class"` (matching Doxygen); `Interface` → `"interface"`, `Struct` → `"struct"`, `Enum` → `"enum"`.
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | string | 16-character lowercase hex string — first 8 bytes of SHA-256(`{fqn}:{typeLabel}`). Unique, deterministic, used as the `MERGE` key. Matches the `id:ID` column in `nodes.csv`. |
+| `name` | string | Simple unqualified name — last dot-delimited segment of the FQN. |
+| `type` | string | Type label string (same as the node label: `class`, `interface`, `struct`, `enum`). |
+| `label` | string | Same as `type`. |
+| `file` | string | Source file path, relativized to the project root using forward slashes. |
+| `startLine` | int | 1-based start line in the source file. |
+| `endLine` | int | 1-based end line in the source file. |
+| `accessibility` | string | Accessibility modifier (e.g. `"public"`). |
+| `fullyqualifiedname` | string | Original .NET fully qualified name. |
+| `resolved` | boolean | `true` for in-scope types; `false` for unresolved reference nodes. |
 
-> **Namespace nodes** — Every unique namespace prefix found within the in-scope type FQNs is also written as a `:Compound {kind: "namespace"}` node, mirroring the separate namespace compound files produced by the Doxygen export.
+> **`ElementKind` → label mapping** — `Class`, `Record`, and `Delegate` map to `"class"`; `Interface` → `"interface"`, `Struct` → `"struct"`, `Enum` → `"enum"`.
+
+> **Unresolved reference nodes** — Types referenced in code but not resolvable to an in-scope type, which share at least one namespace root prefix with an in-scope type, are imported as nodes with `resolved = false`, `type = "class"`, and empty location properties.
 
 ### Relationships
 
-| Relationship | Properties | When written | Doxygen equivalent |
-|---|---|---|---|
-| `-[:BASECOMPOUNDREF {prot, virt}]->` | `prot: "public"`, `virt: "non-virtual"` | Inheritance edge | `<basecompoundref prot="public" virt="non-virtual">` |
-| `-[:BASECOMPOUNDREF {prot, virt}]->` | `prot: "public"`, `virt: "virtual"` | Interface-implementation edge | `<basecompoundref prot="public" virt="virtual">` |
-| `-[:REFERENCES {kind, reason}]->` | `kind: "variable"`, `reason: "…"` | All other usage edges (field type, method param, …) | `<memberdef kind="variable"><references>` |
-| `-[:INNERCLASS {prot}]->` | `prot: "public"` | Namespace compound → each type it directly contains | `<innerclass prot="public">` |
+| Relationship | Properties | When written |
+|---|---|---|
+| `` -[:basecompoundref {startLine, endLine}]-> `` | call-site line numbers (0 if unavailable) | Inheritance and interface-implementation edges |
+| `` -[:ref {startLine, endLine}]-> `` | call-site line numbers (0 if unavailable) | All other usage edges (field type, method param, object creation, …) |
 
 ### Example Cypher queries
 
 ```cypher
-// Find all types in a namespace
-MATCH (ns:Compound {kind: "namespace", name: "Acme::Core"})-[:INNERCLASS]->(t)
-RETURN t.name, t.kind
-
 // Find all types that inherit from or implement a given type
-MATCH (child)-[:BASECOMPOUNDREF]->(parent:Compound {name: "Acme::Core::OrderService"})
-RETURN child.name, child.kind
+MATCH (child)-[:basecompoundref]->(parent {fullyqualifiedname: "Acme.Core.OrderService"})
+RETURN child.fullyqualifiedname, child.type
 
 // Find all usage dependencies of a type
-MATCH (src:Compound {name: "Acme::Core::OrderService"})-[r:REFERENCES]->(tgt)
-RETURN tgt.name, r.reason
+MATCH (src {fullyqualifiedname: "Acme.Core.OrderService"})-[r:ref]->(tgt)
+RETURN tgt.fullyqualifiedname, r.startLine
 
 // Transitive fan-in: all types that directly or indirectly depend on a target
-MATCH p = (dependent)-[:BASECOMPOUNDREF|REFERENCES*1..]->(target:Compound {name: "Acme::Core::OrderService"})
-RETURN DISTINCT dependent.name, dependent.kind
+MATCH p = (dependent)-[:basecompoundref|ref*1..]->(target {fullyqualifiedname: "Acme.Core.OrderService"})
+RETURN DISTINCT dependent.fullyqualifiedname, dependent.type
+
+// Find all unresolved reference nodes
+MATCH (n {resolved: false})
+RETURN n.fullyqualifiedname
 ```
 
 ## Using on a Different Codebase

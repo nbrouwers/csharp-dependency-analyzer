@@ -4,7 +4,7 @@
 > **Last updated:** 2026-04-15  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 284  
+> **Total test cases:** 279  
 > **Pass rate:** 98.9 % (3 infrastructure failures: `dotnet` not in PATH on this machine; all logic tests pass)
 
 ---
@@ -51,7 +51,7 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 8 | `Round3AuditProbeTests.cs` | 33 | Unit | FR-3.2 |
 | 9 | `Round4FinalSweepTests.cs` | 19 | Integration | FR-3.2 |
 | 10 | `DoxygenXmlExporterTests.cs` | 29 | Unit/Integration | FR-5.3, FR-6.1–FR-6.7 |
-| 11 | `Neo4jExporterTests.cs` | 30 | Unit | FR-5.3, FR-7.1–FR-7.7 |
+| 11 | `Neo4jExporterTests.cs` | 25 | Unit | FR-5.3, FR-7.1–FR-7.8 |
 | 12 | `PortableExeTests.cs` | 3 | System | NFR-4.1–NFR-4.3 |
 | 13 | `CiWorkflowTests.cs` | 7 | Infrastructure | NFR-5.1–NFR-5.3 |
 | 14 | `VersionTests.cs` | 4 | Infrastructure | NFR-6.1–NFR-6.4 |
@@ -59,7 +59,7 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 16 | `ReflectionDependencyTests.cs` | 8 | Unit | FR-3.2 |
 | 17 | `CsvIdHelperTests.cs` | 10 | Unit | FR-8.4–FR-8.6 |
 | 18 | `CsvExporterTests.cs` | 23 | Unit/Integration | FR-8.1–FR-8.11 |
-| | **Total** | **284** | | |
+| | **Total** | **279** | | |
 
 ---
 
@@ -323,37 +323,31 @@ Tests for Doxygen XML export, `DoxygenRefIdHelper`, and `DoxygenEdgeKind` edge c
 | DX-25 | `ExtractNamespaces_ReturnsAllPrefixes` | All dot-delimited prefixes returned for multi-level FQN. | Unit |
 | DX-26 | `NamespaceRefId_EncodesCorrectly` | Namespace refid uses `namespace` prefix + encoded name. | Unit |
 
-### 3.11 Neo4jExporterTests (30 tests)
+### 3.11 Neo4jExporterTests (25 tests)
 
-Tests helper logic for the Neo4j direct import using the Doxygen-aligned graph schema — node parameter building (Compound nodes with Doxygen refids), namespace parameter building, `virt` attribute derivation, and edge operation collection — all without requiring a live Neo4j server. Traces to **FR-5.3** and **FR-7.1**–**FR-7.8**.
+Tests helper logic for the Neo4j direct import using the CSV-aligned graph schema — node parameter building (type-labelled nodes with SHA-256 IDs), unresolved reference node building, and edge operation collection — all without requiring a live Neo4j server. Traces to **FR-5.3** and **FR-7.1**–**FR-7.8**.
 
 | ID | Test Method | Description | Level |
 |----|------------|-------------|-------|
-| NJ-01 | `BuildNodeParameters_IdIsDoxygenRefId` | `id` property equals the Doxygen refid derived from the FQN and `ElementKind`. | Unit |
-| NJ-02 | `BuildNodeParameters_KindIsDoxygenKindString` | `kind` property is the lowercase Doxygen kind string (`"class"`), not the enum name. | Unit |
-| NJ-03 | `BuildNodeParameters_NameUsesDoubleColonSeparators` | `name` uses `::` separators — mirrors `<compoundname>Acme::Core::OrderService</compoundname>`. | Unit |
-| NJ-04 | `BuildNodeParameters_ContainsFqn` | Parameter map includes `fqn` key with the original .NET fully qualified name. | Unit |
-| NJ-05 | `BuildNodeParameters_ContainsLanguageCSharp` | Parameter map includes `language` key set to `"C#"`. | Unit |
-| NJ-06 | `BuildNodeParameters_AllKindsMappedToDoxygenKindString(×6)` | Theory: `Class`/`Record`/`Delegate`→`"class"`, `Interface`→`"interface"`, `Struct`→`"struct"`, `Enum`→`"enum"`. | Unit |
-| NJ-07 | `BuildNamespaceParameters_IdIsNamespaceRefId` | Namespace parameter `id` equals `NamespaceRefId(ns)`. | Unit |
-| NJ-08 | `BuildNamespaceParameters_KindIsNamespace` | Namespace parameter `kind` is `"namespace"` — mirrors `<compounddef kind="namespace">`. | Unit |
-| NJ-09 | `BuildNamespaceParameters_NameUsesDoubleColonSeparators` | Namespace `name` uses `::` separators. | Unit |
-| NJ-10 | `GetVirt_Inheritance_ReturnsNonVirtual` | `Inheritance` → `"non-virtual"` — mirrors `<basecompoundref virt="non-virtual">`. | Unit |
-| NJ-11 | `GetVirt_InterfaceImplementation_ReturnsVirtual` | `InterfaceImplementation` → `"virtual"` — mirrors `<basecompoundref virt="virtual">`. | Unit |
-| NJ-12 | `GetVirt_Usage_ReturnsNonVirtual` | `Usage` edge kind → `"non-virtual"` fallback. | Unit |
-| NJ-13 | `CollectEdgeOperations_EmptyGraph_ReturnsEmpty` | No edge operations emitted for empty graph. | Unit |
-| NJ-14 | `CollectEdgeOperations_InheritanceEdge_RelTypeIsBaseCompoundRef` | Inheritance edge → `BASECOMPOUNDREF` relationship type. | Unit |
-| NJ-15 | `CollectEdgeOperations_InheritanceEdge_VirtParameterIsNonVirtual` | Inheritance edge → `virt="non-virtual"`, `prot="public"` parameters. | Unit |
-| NJ-16 | `CollectEdgeOperations_InterfaceEdge_RelTypeIsBaseCompoundRef` | Interface-implementation edge → `BASECOMPOUNDREF` relationship type. | Unit |
-| NJ-17 | `CollectEdgeOperations_InterfaceEdge_VirtParameterIsVirtual` | Interface-implementation edge → `virt="virtual"` parameter. | Unit |
-| NJ-18 | `CollectEdgeOperations_UsageEdge_RelTypeIsReferences` | Usage edge → `REFERENCES` relationship type. | Unit |
-| NJ-19 | `CollectEdgeOperations_UsageEdge_ReasonInParameters` | `reason` property on `REFERENCES` edge matches `DependencyReason`. | Unit |
-| NJ-20 | `CollectEdgeOperations_OutOfScopeTarget_EdgeSkipped` | Edge targeting type not in `ElementKinds` is not emitted. | Unit |
-| NJ-21 | `CollectEdgeOperations_EdgeIdsAreDerivedFromRefIds` | `SourceId`/`TargetId` on `EdgeOperation` are Doxygen refids, not .NET FQNs. | Unit |
-| NJ-22 | `CollectInnerClassOperations_EmptyGraph_ReturnsEmpty` | No inner-class operations for empty graph or empty namespace list. | Unit |
-| NJ-23 | `CollectInnerClassOperations_TypeInNamespace_ProducesInnerClassEdge` | Type directly in a namespace → one `INNERCLASS` edge operation emitted. | Unit |
-| NJ-24 | `CollectInnerClassOperations_InnerClassEdge_IdsAreNamespaceRefIdAndTypeRefId` | `SourceId` is the namespace refid; `TargetId` is the type refid; both reflected in `Parameters`. | Unit |
-| NJ-25 | `CollectInnerClassOperations_TopLevelType_NotLinkedToAnyNamespace` | Type with no namespace prefix is not linked to any namespace compound. | Unit |
+| NJ-01 | `BuildNodeParameters_IdIsCsvNodeId` | `id` property equals `CsvIdHelper.ToNodeId(fqn, kind)` — a 16-char SHA-256 hex string. | Unit |
+| NJ-02 | `BuildNodeParameters_TypeAndLabelAreTypeLabel` | `type` and `label` properties equal the CSV type label (e.g. `"class"`). | Unit |
+| NJ-03 | `BuildNodeParameters_NameIsSimpleName` | `name` property is the simple unqualified name — last dot-delimited segment of the FQN. | Unit |
+| NJ-04 | `BuildNodeParameters_ContainsFullyQualifiedName` | Parameter map includes `fullyqualifiedname` key with the original .NET FQN. | Unit |
+| NJ-05 | `BuildNodeParameters_ResolvedIsTrue` | `resolved` property is `true` for in-scope type nodes. | Unit |
+| NJ-06 | `BuildNodeParameters_AllKindsMappedToTypeLabel(×6)` | Theory: `Class`/`Record`/`Delegate`→`"class"`, `Interface`→`"interface"`, `Struct`→`"struct"`, `Enum`→`"enum"`. | Unit |
+| NJ-07 | `BuildNodeParameters_TypeLocationProvided_PropertiesPopulated` | When a `TypeLocation` is supplied, `file`, `startLine`, `endLine`, and `accessibility` are set from it. | Unit |
+| NJ-08 | `BuildNodeParameters_TypeLocationAbsent_DefaultsUsed` | When no `TypeLocation` is supplied, `file` is `""`, lines are `0`, accessibility is `""`. | Unit |
+| NJ-09 | `BuildUnresolvedNodeParameters_ResolvedIsFalse` | `resolved` property is `false` for unresolved reference nodes. | Unit |
+| NJ-10 | `BuildUnresolvedNodeParameters_IdMatchesCsvHelper` | `id` equals `CsvIdHelper.ToNodeId(fqn, "class")` — same as CSV unresolved row. | Unit |
+| NJ-11 | `BuildUnresolvedNodeParameters_TypeIsClass` | `type` and `label` are `"class"` regardless of FQN content. | Unit |
+| NJ-12 | `CollectEdgeOperations_EmptyGraph_ReturnsEmpty` | No edge operations emitted for empty graph. | Unit |
+| NJ-13 | `CollectEdgeOperations_InheritanceEdge_RelTypeIsBaseCompoundRef` | Inheritance edge → `basecompoundref` relationship type (lowercase, CSV-aligned). | Unit |
+| NJ-14 | `CollectEdgeOperations_InterfaceEdge_RelTypeIsBaseCompoundRef` | Interface-implementation edge → `basecompoundref` relationship type. | Unit |
+| NJ-15 | `CollectEdgeOperations_UsageEdge_RelTypeIsRef` | Usage/other edges → `ref` relationship type (CSV-aligned). | Unit |
+| NJ-16 | `CollectEdgeOperations_OutOfScopeTarget_EdgeSkipped` | Edge targeting type not in `ElementKinds` and not an unresolved reference is not emitted. | Unit |
+| NJ-17 | `CollectEdgeOperations_EdgeIdsMatchCsvIdHelper` | `SourceId`/`TargetId` on `EdgeOperation` equal `CsvIdHelper.ToNodeId(fqn, kind)` — same IDs as CSV export. | Unit |
+| NJ-18 | `CollectEdgeOperations_EdgeLocationProvided_StartEndLinePopulated` | When `graph.EdgeLocations` contains the edge, `startLine`/`endLine` parameters are set from it. | Unit |
+| NJ-19 | `CollectEdgeOperations_EdgeLocationAbsent_StartEndLineAreZero` | When `graph.EdgeLocations` has no entry for the edge, `startLine`/`endLine` default to `0`. | Unit |
 
 ### 3.12 PortableExeTests (3 tests)
 
@@ -472,9 +466,10 @@ Tests the CSV export producing `nodes.csv` and `relationships.csv`. Covers file 
 
 | Requirement | Test IDs | Coverage |
 |-------------|----------|----------|
-| **FR-5.3**: `export` subcommand | DX-01–26, NJ-01–25, CV-01–23 | Full |
+| **FR-5.3**: `export` subcommand | DX-01–26, NJ-01–20, CV-01–23 | Full |
 | **FR-6.1–6.7**: Doxygen XML export | DX-01–26 | Full |
-| **FR-7.1–7.7**: Neo4j direct import | NJ-01–25 | Full |
+| **FR-7.1–7.7**: Neo4j direct import | NJ-01–19 | Full |
+| **FR-7.8**: Clear database before import | NJ-20 | Full |
 | **FR-8.1–8.11**: CSV export | CV-01–23, CI-01–05 | Full |
 | **FR-1**: Target class specification | WB-03, WB-04, WB-05, E2E-01–04 | Full |
 | **FR-2**: Source scope definition | WB-01, WB-02, GB-15 | Full |
