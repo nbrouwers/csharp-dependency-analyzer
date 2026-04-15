@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
 
     <!-- Semantic versioning -->
-    <Version>3.2.1</Version>
+    <Version>4.0.0</Version>
 
     <!-- Self-contained single-file portable executable settings -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
