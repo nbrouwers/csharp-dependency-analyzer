@@ -1,0 +1,15 @@
+﻿C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Program.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Analysis\DependencyGraphBuilder.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Analysis\DependencyVisitor.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Analysis\RoslynWorkspaceBuilder.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Analysis\TransitiveFanInAnalyzer.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\AnalysisResult.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\DependencyGraph.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\DoxygenEdgeKind.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\DoxygenRefIdHelper.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\ElementKind.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\FanInElement.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Models\TypeDependency.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Reporting\DoxygenXmlExporter.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Reporting\MarkdownReportGenerator.cs
+C:\Dev\CapEng\Playground\csharp-dependency-analyzer\src\DependencyAnalyzer\Reporting\Neo4jExporter.cs

@@ -6,8 +6,8 @@ namespace SampleApp.Infrastructure
     /// <summary>
     /// Loads order-related types by name using the .NET reflection API.
     /// Exercises the static reflection dependency detection feature:
-    /// Type.GetType() and Assembly.GetType() with string literal FQNs
-    /// are detected as dependencies on the named types.
+    /// Type.GetType(), Assembly.GetType(), and Module.GetType() with string
+    /// literal FQNs are detected as dependencies on the named types.
     /// </summary>
     public class OrderTypeRegistry
     {
@@ -28,6 +28,16 @@ namespace SampleApp.Infrastructure
         public Type? GetOrderValidatorType(Assembly assembly)
         {
             return assembly.GetType("SampleApp.Core.OrderValidator");
+        }
+
+        /// <summary>
+        /// Returns the <see cref="Type"/> of <c>SampleApp.Core.OrderStatus</c>
+        /// resolved from a module reference. Detected as a direct dependency
+        /// on OrderStatus via Module.GetType string literal.
+        /// </summary>
+        public Type? GetOrderStatusType(Module module)
+        {
+            return module.GetType("SampleApp.Core.OrderStatus");
         }
     }
 }

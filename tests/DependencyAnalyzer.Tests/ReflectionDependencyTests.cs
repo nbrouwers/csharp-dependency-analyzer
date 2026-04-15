@@ -4,8 +4,9 @@ namespace DependencyAnalyzer.Tests;
 
 /// <summary>
 /// Tests for static reflection dependency detection (Strategy 1).
-/// Covers <c>Type.GetType("FQN")</c> and <c>Assembly.GetType("FQN")</c> calls
-/// where the first argument is a string literal that matches an in-scope FQN.
+/// Covers <c>Type.GetType("FQN")</c>, <c>Assembly.GetType("FQN")</c>, and
+/// <c>Module.GetType("FQN")</c> calls where the first argument is a string
+/// literal that matches an in-scope FQN.
 /// Dynamic string arguments (variables, concatenations) are intentionally not
 /// detected — they require runtime tracing instead.
 /// Traces to <b>FR-3.2</b>.
@@ -108,5 +109,41 @@ public class ReflectionDependencyTests
 
         Assert.Empty(graph.Edges.Values.SelectMany(e => e)
             .Where(d => d.SourceFqn == "N.Consumer" && d.TargetFqn == "N.Consumer"));
+    }
+
+    [Fact] // RF-07
+    public void Detects_ModuleGetType_FullyQualifiedStringLiteral()
+    {
+        // module.GetType("N.Target") on a System.Reflection.Module instance should emit an edge
+        var graph = TestHelper.BuildGraph(
+            "namespace N { public class Target {} }",
+            @"namespace N {
+                using System.Reflection;
+                public class Consumer {
+                    public void Do(Module mod) { var t = mod.GetType(""N.Target""); }
+                }
+            }");
+
+        Assert.True(HasEdge(graph, "N.Consumer", "N.Target"));
+    }
+
+    [Fact] // RF-08
+    public void ModuleGetType_DependencyReason_ContainsModuleAndReflection()
+    {
+        // The dependency reason should identify this as a Module-specific reflection edge
+        var graph = TestHelper.BuildGraph(
+            "namespace N { public class Target {} }",
+            @"namespace N {
+                using System.Reflection;
+                public class Consumer {
+                    public void Do(Module mod) { var t = mod.GetType(""N.Target""); }
+                }
+            }");
+
+        var edge = graph.Edges.Values.SelectMany(e => e)
+            .Single(d => d.SourceFqn == "N.Consumer" && d.TargetFqn == "N.Target");
+
+        Assert.Contains("Reflection", edge.DependencyReason);
+        Assert.Contains("Module", edge.DependencyReason);
     }
 }

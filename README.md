@@ -541,7 +541,7 @@ The dependency visitor detects type references across all mainstream C# construc
 - Delegate signatures and function pointer types
 - Async return types, yield iterators, expression-bodied members
 - Catch clauses, foreach, for, using, and fixed statements
-- Reflection API calls: `Type.GetType("FQN")` and `Assembly.GetType("FQN")` with string literal arguments
+- Reflection API calls: `Type.GetType("FQN")`, `Assembly.GetType("FQN")`, and `Module.GetType("FQN")` with string literal arguments
 
 ## Reflection Dependency Detection
 
@@ -549,11 +549,12 @@ The .NET reflection API (`Type.GetType`, `Assembly.GetType`, `Activator.CreateIn
 
 ### What is detected
 
-When a string literal whose value exactly matches an in-scope fully qualified type name is passed as the first argument to `Type.GetType(...)` or `Assembly.GetType(...)`, the analyzer emits a dependency edge with reason `"Reflection: Type.GetType string literal"` or `"Reflection: Assembly.GetType string literal"`.
+When a string literal whose value exactly matches an in-scope fully qualified type name is passed as the first argument to `Type.GetType(...)`, `Assembly.GetType(...)`, or `Module.GetType(...)`, the analyzer emits a dependency edge with an appropriate reason string.
 
 ```csharp
-Type.GetType("Acme.Core.OrderService")     // → edge: Consumer —[Reflection: Type.GetType]-→ OrderService
-assembly.GetType("Acme.Core.OrderService") // → edge: Consumer —[Reflection: Assembly.GetType]-→ OrderService
+Type.GetType("Acme.Core.OrderService")     // → edge: Consumer —[Reflection: Type.GetType string literal]-→ OrderService
+assembly.GetType("Acme.Core.OrderService") // → edge: Consumer —[Reflection: Assembly.GetType string literal]-→ OrderService
+module.GetType("Acme.Core.OrderService")   // → edge: Consumer —[Reflection: Module.GetType string literal]-→ OrderService
 ```
 
 Calls where `typeof(T)` is already used (the dominant DI pattern) are covered by the existing `typeof` visitor and do not need this feature.

@@ -534,9 +534,12 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
                     node.ArgumentList.Arguments[0].Expression is LiteralExpressionSyntax reflLit &&
                     reflLit.IsKind(SyntaxKind.StringLiteralExpression))
                 {
-                    var reflReason = method.ContainingType.Name == "Assembly"
-                        ? "Reflection: Assembly.GetType string literal"
-                        : "Reflection: Type.GetType string literal";
+                    var reflReason = method.ContainingType.Name switch
+                    {
+                        "Assembly" => "Reflection: Assembly.GetType string literal",
+                        "Module"   => "Reflection: Module.GetType string literal",
+                        _          => "Reflection: Type.GetType string literal"
+                    };
                     RecordDependencyByFqn(reflLit.Token.ValueText, reflReason);
                 }
             }
@@ -725,13 +728,15 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
     }
 
     /// <summary>
-    /// Returns <see langword="true"/> when the method is <c>Type.GetType</c> or
-    /// <c>Assembly.GetType</c> — the two primary reflection entry points whose
-    /// first argument is a fully-qualified type name string.
+    /// Returns <see langword="true"/> when the method is <c>Type.GetType</c>,
+    /// <c>Assembly.GetType</c>, or <c>Module.GetType</c> — the reflection entry
+    /// points whose first argument is a fully-qualified type name string.
     /// </summary>
     private static bool IsReflectionGetTypeSource(IMethodSymbol method)
     {
         var containingTypeName = method.ContainingType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return containingTypeName is "global::System.Type" or "global::System.Reflection.Assembly";
+        return containingTypeName is "global::System.Type"
+            or "global::System.Reflection.Assembly"
+            or "global::System.Reflection.Module";
     }
 }
