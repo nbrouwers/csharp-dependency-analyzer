@@ -9,13 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [3.1.0] — 2026-04-15
+
 ### Added
-- **Module.GetType reflection detection**: `Module.GetType("FQN")` calls with a string-literal first argument matching an in-scope FQN are now detected alongside `Type.GetType` and `Assembly.GetType`. The emitted dependency reason is `"Reflection: Module.GetType string literal"`. The reason-string logic was changed from a binary ternary to a switch expression to accommodate the third case cleanly.
-- `GetOrderStatusType(Module)` method added to `OrderTypeRegistry` sample class to exercise the new detection path.
-- 2 new tests (`ReflectionDependencyTests.cs`, RF-07–RF-08): edge detection and reason-string verification for `Module.GetType`.
-- **Reflection dependency detection (Strategy 1)**: `Type.GetType("FQN")` and `Assembly.GetType("FQN")` calls whose first argument is a string literal matching an in-scope fully qualified type name are now detected and emitted as dependency edges with reason `"Reflection: Type.GetType string literal"` / `"Reflection: Assembly.GetType string literal"`. Dynamic strings (variables, interpolated strings) are intentionally not detected — they require runtime tracing and are out of scope for static analysis.
-- `OrderTypeRegistry` sample class added to `samples/SampleCodebase/` to exercise reflection detection; fan-in count for `SampleApp.Core.OrderService` increases from 11 to 12.
-- 6 new tests (`ReflectionDependencyTests.cs`, RF-01–06) covering: string-literal `Type.GetType` and `Assembly.GetType` detection, out-of-scope suppression, non-literal suppression, self-loop suppression, and reason string verification.
+- **Reflection dependency detection (Strategy 1)**: `Type.GetType("FQN")`, `Assembly.GetType("FQN")`, and `Module.GetType("FQN")` calls whose first argument is a compile-time string literal matching an in-scope fully qualified type name are now detected and emitted as dependency edges. The emitted reason strings are `"Reflection: Type.GetType string literal"`, `"Reflection: Assembly.GetType string literal"`, and `"Reflection: Module.GetType string literal"` respectively. Dynamic strings (variables, interpolated strings) are intentionally not detected — they require runtime tracing and are out of scope for static analysis.
+- `OrderTypeRegistry` sample class added to `samples/SampleCodebase/` demonstrating all three reflection detection patterns; fan-in count for `SampleApp.Core.OrderService` increases from 11 to 12.
+- 8 new tests (`ReflectionDependencyTests.cs`, RF-01–RF-08) covering: string-literal `Type.GetType`, `Assembly.GetType`, and `Module.GetType` detection; out-of-scope suppression; non-literal suppression; self-loop suppression; and reason string verification.
 
 ### Notes on reflection support strategy
 
@@ -23,7 +24,7 @@ Four strategies were evaluated (see README — *Reflection Dependency Detection*
 
 | # | Strategy | Decision |
 |---|----------|----------|
-| 1 | Static string-literal scanning (`Type.GetType` / `Assembly.GetType`) | **Implemented** — covers ~80 % of hand-written reflection at ~50 lines of code |
+| 1 | Static string-literal scanning (`Type.GetType` / `Assembly.GetType` / `Module.GetType`) | **Implemented** — covers ~80 % of hand-written reflection at ~50 lines of code |
 | 2 | `typeof(T)` and DI generic registrations | Already covered by existing `typeof` and generic-type-argument visitors |
 | 3 | Source-generator outputs | Already covered when generated `.cs` files are included in the file list |
 | 4 | Runtime tracing via EventSource / profiler | Not implemented — natural next milestone for complete coverage |
