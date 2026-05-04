@@ -76,9 +76,14 @@ public sealed class DependencyGraphBuilder
 
             foreach (var fqn in visitor.UnresolvedReferences)
                 graph.AddUnresolvedReference(fqn);
+
+            foreach (var kind in visitor.UnvisitedNodeKinds)
+                graph.AddUnvisitedNodeKind(kind.ToString());
         }
 
         _log($"Collected {edgeCount} dependency edge(s).");
+        if (graph.UnvisitedNodeKinds.Count > 0)
+            _log($"[Diagnostic] {graph.UnvisitedNodeKinds.Count} unhandled syntax node kind(s): {string.Join(", ", graph.UnvisitedNodeKinds.Order())}");
         return graph;
     }
 

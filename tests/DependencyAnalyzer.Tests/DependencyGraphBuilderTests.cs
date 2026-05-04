@@ -176,4 +176,43 @@ public class DependencyGraphBuilderTests
         var allEdges = graph.Edges.Values.SelectMany(e => e).ToList();
         Assert.DoesNotContain(allEdges, d => d.TargetFqn.Contains("String"));
     }
+
+    // ==========================================
+    // UNVISITED NODE KIND DIAGNOSTICS
+    // ==========================================
+
+    [Fact]
+    public void UnvisitedNodeKinds_ContainsKindsNotHandledByVisitor()
+    {
+        // A method body with an if statement introduces IfStatementSyntax,
+        // which has no explicit Visit* override in DependencyVisitor.
+        var graph = TestHelper.BuildGraph(
+            "namespace N { public class C { public void M() { if (true) {} } } }");
+
+        Assert.Contains("IfStatement", graph.UnvisitedNodeKinds);
+    }
+
+    [Fact]
+    public void UnvisitedNodeKinds_DoesNotContainClassDeclaration()
+    {
+        // ClassDeclarationSyntax IS explicitly handled by VisitClassDeclaration —
+        // it must NOT appear in the unvisited set.
+        var graph = TestHelper.BuildGraph(
+            "namespace N { public class Target {} }",
+            "namespace N { public class Consumer { private Target _t; } }");
+
+        Assert.DoesNotContain("ClassDeclaration", graph.UnvisitedNodeKinds);
+    }
+
+    [Fact]
+    public void UnvisitedNodeKinds_DoesNotContainMethodDeclaration()
+    {
+        // MethodDeclarationSyntax IS explicitly handled by VisitMethodDeclaration —
+        // it must NOT appear in the unvisited set.
+        var graph = TestHelper.BuildGraph(
+            "namespace N { public class Target {} }",
+            "namespace N { public class Consumer { public Target Get() => null; } }");
+
+        Assert.DoesNotContain("MethodDeclaration", graph.UnvisitedNodeKinds);
+    }
 }

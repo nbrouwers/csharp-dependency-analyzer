@@ -1,10 +1,10 @@
 # Test Report — C# Dependency Analyzer
 
 > **Document version:** 1.0  
-> **Last updated:** 2026-04-15  
+> **Last updated:** 2026-05-04  
 > **Test framework:** xUnit 2.5.3  
 > **Target framework:** .NET 8.0  
-> **Total test cases:** 282
+> **Total test cases:** 285
 > **Pass rate:** 100 %
 
 ---
@@ -42,7 +42,7 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | # | Test File | Tests | Level | Requirement |
 |---|-----------|------:|-------|-------------|
 | 1 | `RoslynWorkspaceBuilderTests.cs` | 5 | Unit | FR-1, FR-2 |
-| 2 | `DependencyGraphBuilderTests.cs` | 15 | Unit | FR-3.1, FR-3.2 |
+| 2 | `DependencyGraphBuilderTests.cs` | 18 | Unit | FR-3.1, FR-3.2, FR-3.5 |
 | 3 | `TransitiveFanInAnalyzerTests.cs` | 18 | Unit | FR-3.3, FR-3.4, FR-4.3, FR-4.5, FR-4.6 |
 | 4 | `MarkdownReportGeneratorTests.cs` | 13 | Unit | FR-4.1–FR-4.6 |
 | 5 | `EndToEndTests.cs` | 4 | Integration | FR-1–FR-4 |
@@ -59,7 +59,7 @@ This report catalogs every automated test case in the C# Dependency Analyzer pro
 | 16 | `ReflectionDependencyTests.cs` | 8 | Unit | FR-3.2 |
 | 17 | `CsvIdHelperTests.cs` | 10 | Unit | FR-8.4–FR-8.6 |
 | 18 | `CsvExporterTests.cs` | 23 | Unit/Integration | FR-8.1–FR-8.11 |
-| | **Total** | **279** | | |
+| | **Total** | **282** | | |
 
 ---
 
@@ -98,6 +98,9 @@ Tests individual dependency edge detection for the core language constructs. Tra
 | GB-13 | `Records_ElementKinds_Correctly` | Class, interface, struct, enum, record, delegate kinds are classified. | Unit |
 | GB-14 | `DoesNotRecord_SelfReference` | A type referencing itself does not create a self-edge. | Unit |
 | GB-15 | `DoesNotRecord_OutOfScopeTypes` | References to BCL types do not create edges. | Unit |
+| GB-16 | `UnvisitedNodeKinds_ContainsKindsNotHandledByVisitor` | `IfStatement` appears in `graph.UnvisitedNodeKinds` when code has an if statement. | Unit |
+| GB-17 | `UnvisitedNodeKinds_DoesNotContainClassDeclaration` | `ClassDeclaration` is absent from `graph.UnvisitedNodeKinds` (explicitly handled). | Unit |
+| GB-18 | `UnvisitedNodeKinds_DoesNotContainMethodDeclaration` | `MethodDeclaration` is absent from `graph.UnvisitedNodeKinds` (explicitly handled). | Unit |
 
 ### 3.3 TransitiveFanInAnalyzerTests (10 tests)
 
@@ -475,6 +478,7 @@ Tests the CSV export producing `nodes.csv` and `relationships.csv`. Covers file 
 | **FR-2**: Source scope definition | WB-01, WB-02, GB-15 | Full |
 | **FR-3.1**: Roslyn semantic model | WB-01, GB-01–15 | Full |
 | **FR-3.2**: Dependency detection | GB-01–12, CD-01–37, GP-01–16, R3-01–33, R4-01–19, RF-01–08 | Full |
+| **FR-3.5**: Unvisited node kind diagnostics | GB-16, GB-17, GB-18 | Full |
 | **FR-3.3**: Transitive closure | FA-01–03, FA-06, R3-31–33, E2E-01 | Full |
 | **FR-3.4**: Target exclusion | FA-05, E2E-01 | Full |
 | **FR-4.1–4.2**: Report content | RG-01–05 | Full |
@@ -511,6 +515,7 @@ Tests the CSV export producing `nodes.csv` and `relationships.csv`. Covers file 
 | Nested types | 2 | R3-20, R3-21 |
 | Transitive / diamond / circular | 5 | FA-06, R3-31, R3-32, R3-33, E2E-01 |
 | Reflection (Type.GetType / Assembly.GetType / Module.GetType string literals) | 8 | RF-01–08 |
+| Diagnostic: unvisited node kind logging | 3 | GB-16, GB-17, GB-18 |
 
 ---
 
@@ -536,7 +541,7 @@ Tests run automatically on every push and pull request via [`.github/workflows/c
 ### Latest Run
 
 ```
-Test summary: total: 282, failed: 0, succeeded: 282, skipped: 0
+Test summary: total: 285, failed: 0, succeeded: 285, skipped: 0
 Duration: ~21s
 ```
 
@@ -558,5 +563,6 @@ Tests were developed across four iterative cross-check rounds against the C# lan
 | Semantic versioning | 5 | — | — | 179 || Doxygen XML export + subcommand CLI | 29 | — | — | 208 |
 | Neo4j direct import | 30 | — | — | 238 |
 | Reflection detection (Strategy 1) | 6 | 0 | 0 | 244 |
+| Unvisited node kind diagnostics | 3 | 0 | 0 | 247 |
 | Module.GetType extension | 2 | 0 | 0 | 246 |
 Round 4 finding zero gaps confirmed convergence: all mainstream C# constructs are covered.

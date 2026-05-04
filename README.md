@@ -17,7 +17,7 @@ A Roslyn-based static analysis tool with four primary functions:
 Both subcommands share the same first two steps:
 
 1. **Roslyn compilation** — All listed source files are parsed and compiled in-memory using the Roslyn Compiler Platform. No `.csproj` or `.sln` is needed; the tool works directly on raw `.cs` files.
-2. **Dependency graph extraction** — A `CSharpSyntaxWalker` visits every syntax tree and records type-to-type dependency edges (inheritance, field types, method signatures, object creation, casts, pattern matching, attributes, generics, and ~40 other C# constructs).
+2. **Dependency graph extraction** — A `CSharpSyntaxWalker` visits every syntax tree and records type-to-type dependency edges (inheritance, field types, method signatures, object creation, casts, pattern matching, attributes, generics, and ~40 other C# constructs). Any syntax node kind encountered during the walk that has no explicit handler is collected into a diagnostic set (`DependencyGraph.UnvisitedNodeKinds`) and logged, making coverage gaps visible.
 
 From there, each subcommand follows its own path:
 

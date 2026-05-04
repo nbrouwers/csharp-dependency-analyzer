@@ -1,3 +1,4 @@
+using System.Reflection;
 using DependencyAnalyzer.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -23,10 +24,51 @@ public sealed class DependencyVisitor : CSharpSyntaxWalker
     public IReadOnlyDictionary<TypeDependency, DependencyLocation> EdgeLocations => _edgeLocations;
     public IReadOnlyList<string> UnresolvedReferences => _unresolvedReferences;
 
+    // Syntax node types for which DependencyVisitor declares an explicit Visit* override.
+    // Built once at class load time via reflection to avoid manual maintenance.
+    private static readonly HashSet<Type> s_handledNodeTypes = BuildHandledNodeTypes();
+
+    private static HashSet<Type> BuildHandledNodeTypes()
+    {
+        var result = new HashSet<Type>();
+        foreach (var method in typeof(DependencyVisitor)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name.StartsWith("Visit", StringComparison.Ordinal)))
+        {
+            var parameters = method.GetParameters();
+            if (parameters.Length == 1 && typeof(SyntaxNode).IsAssignableFrom(parameters[0].ParameterType))
+                result.Add(parameters[0].ParameterType);
+        }
+        return result;
+    }
+
+    private readonly HashSet<SyntaxKind> _unvisitedNodeKinds = new();
+
+    /// <summary>
+    /// The set of <see cref="SyntaxKind"/> values encountered during the walk whose concrete
+    /// node type has no explicit <c>Visit*</c> override in <see cref="DependencyVisitor"/>.
+    /// Populated by the <see cref="Visit(SyntaxNode?)"/> override as a diagnostic aid to
+    /// surface potential coverage gaps.
+    /// </summary>
+    public IReadOnlySet<SyntaxKind> UnvisitedNodeKinds => _unvisitedNodeKinds;
+
     public DependencyVisitor(SemanticModel semanticModel, HashSet<string> inScopeTypes)
     {
         _semanticModel = semanticModel;
         _inScopeTypes = inScopeTypes;
+    }
+
+    // --- Diagnostic traversal hook ---
+
+    /// <summary>
+    /// Records the <see cref="SyntaxKind"/> of every visited node whose concrete type has no
+    /// explicit <c>Visit*</c> override in this class, then delegates to the base walker.
+    /// </summary>
+    public override void Visit(SyntaxNode? node)
+    {
+        if (node != null && !s_handledNodeTypes.Contains(node.GetType()))
+            _unvisitedNodeKinds.Add(node.Kind());
+        base.Visit(node);
     }
 
     // --- Type declaration tracking ---

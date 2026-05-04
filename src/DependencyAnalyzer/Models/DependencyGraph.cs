@@ -60,4 +60,17 @@ public sealed class DependencyGraph
     {
         UnresolvedReferences.Add(fqn);
     }
+
+    /// <summary>
+    /// SyntaxKind names (from <c>SyntaxKind.ToString()</c>) for syntax node types encountered
+    /// during the walk that have no explicit <c>Visit*</c> override in <c>DependencyVisitor</c>.
+    /// Aggregated across all syntax trees in the compilation. Populated as a diagnostic to
+    /// surface potential coverage gaps in the visitor.
+    /// </summary>
+    public HashSet<string> UnvisitedNodeKinds { get; } = new();
+
+    public void AddUnvisitedNodeKind(string kindName)
+    {
+        UnvisitedNodeKinds.Add(kindName);
+    }
 }

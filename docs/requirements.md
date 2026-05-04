@@ -88,6 +88,7 @@ Determine the complete transitive fan-in of a specified C# class using Roslyn-ba
   - `Type.GetType("FQN")`, `Assembly.GetType("FQN")`, or `Module.GetType("FQN")` calls where the first argument is a string literal whose value matches an in-scope fully qualified type name (Strategy 1 reflection detection)
 - **FR-3.3**: The tool shall compute the transitive closure of all fan-in elements — i.e., if element A depends on the target, and element B depends on A, then B is also included.
 - **FR-3.4**: The target class itself shall not be listed as a fan-in element.
+- **FR-3.5**: During dependency graph construction, the tool shall collect the set of syntax node kinds encountered in the traversal that have no explicit handler in `DependencyVisitor`, and shall log them as a diagnostic message after the analysis pass. The set shall also be accessible on the resulting `DependencyGraph` (as `UnvisitedNodeKinds`). This supports ongoing coverage audits and identification of potential detection gaps.
 
 ### FR-4: Report Generation
 
